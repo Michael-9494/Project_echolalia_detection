@@ -21,6 +21,7 @@ F=[1:length(S)]*(Fs/2)/length(S);
 x1=zeros(1,N);
 for xi=1:N
     band=spread_mel(xf,xi,length(S),Fs/2);
+    % apply my new VTLN 
     x1(xi)=sum(band.*S');
 end
 x=log(x1);
