@@ -48,4 +48,5 @@ weightPerBand   = filterBandWidth./2;
 for i = 1:NumBands
     Filter_Bank(:,i) = Filter_Bank(:,i)./weightPerBand(i);
 end
+Filter_Bank = Filter_Bank';
 end

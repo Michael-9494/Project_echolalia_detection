@@ -92,7 +92,7 @@ PowerSpectrum = S.*conj(S);
 NumBands = 13;
 range = [0,Fs/2];
 
-[Filter_Bank,center_Frequencies,MF,BW1] = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
+[Filter_Bank,center_Frequencies,MF,BW] = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
 
 figure,plot(F,Filter_Bank.'),grid on;
 title("Mel Filter Bank- my implementation"),xlabel("Frequency (Hz)");
@@ -118,7 +118,7 @@ alpha = 0.88: 0.02: 1.22;
 theta_p_of_lamda = zeros(NumBands);
 for j =1:NumBands
     for i = 1:NumBands
-        theta_p_of_lamda(i,j) = th_p_of_Lamda(alpha(j),Center_frequencies(i),Fs);
+        theta_p_of_lamda(i,j) = th_p_of_Lamda(alpha(j),center_Frequencies(i),Fs);
     end
 end
 
@@ -133,7 +133,7 @@ inv_DCT_mat = DCT_mat';
 
 % To apply frequency domain filtering, perform a matrix multiplication of
 % the filter bank and the power spectrogram.
-melSpectrogram = filterBank*PowerSpectrum;
+melSpectrogram = Filter_Bank*PowerSpectrum;
 
 % Visualize the power-per-band in dB.
 melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
@@ -141,9 +141,9 @@ melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
 
 
 figure
-surf(t,Center_frequencies,melSpectrogramdB_cepstrum,"EdgeColor","none");
+surf(t,center_Frequencies,melSpectrogramdB_cepstrum,"EdgeColor","none");
 view([0,90])
-axis([t(1) t(end) Center_frequencies(1) Center_frequencies(end)])
+axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
 xlabel('Time (s)')
 ylabel('Frequency (Hz)')
 c = colorbar;
