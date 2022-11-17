@@ -134,6 +134,8 @@ end
 
 
 %%
+clear all
+clc
 M=40;
 figure
 % Create some 2D data in 3 classes

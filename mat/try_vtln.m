@@ -1,10 +1,10 @@
 
 clear;close all;clc
-
-Data_Folder = "Y:\Echolalia_proj_Michael\DATA\New folder";
-% cd(Data_Folder);
-
-Autism_data = dir(Data_Folder);
+% 
+% Data_Folder = "Y:\Echolalia_proj_Michael\DATA\New folder";
+% % cd(Data_Folder);
+% 
+% Autism_data = dir(Data_Folder);
 
 proj ="C:\Users\97254\Documents\GitHub\Project-speech\Project_echolalia_detection\mat" ;
 ADOS_table = readtable(proj+"\New folder\675830557_170820_new.xlsx");
@@ -72,7 +72,7 @@ WindowLength=30*10^-3;  % 30 [mS] window
 WindowLenSamp=WindowLength*Fs;
 Overlap=75;             % 50% overlap
 fftLength = 2^nextpow2(WindowLenSamp);
-noverlap=20*10^(-3)*Fs;
+noverlap=((Overlap)*WindowLength)/100 *Fs;
 
 [ProcessedSig_therapist,FramedSig_therapist] = PreProcess(Signal_therapist,Fs,alpha,WindowLength,Overlap);
 [ProcessedSig_child,FramedSig_child] = PreProcess(Signal_child,Fs,alpha,WindowLength,Overlap);
@@ -83,7 +83,9 @@ noverlap=20*10^(-3)*Fs;
 % representation without any loss of information. Convert the complex
 % spectrum to the magnitude spectrum: phase information is discarded
 % when calculating mel frequency cepstral coefficients (MFCC).
-[S,F,t] = stft(Signal_therapist,Fs, ...
+
+
+[S,F,t] = stft(ProcessedSig_therapist,Fs, ...
     "Window",hamming(WindowLenSamp,"periodic"), ...
     "OverlapLength",noverlap, ...
     "FrequencyRange","onesided");
@@ -92,12 +94,17 @@ PowerSpectrum = S.*conj(S);
 NumBands = 13;
 range = [0,Fs/2];
 
-[Filter_Bank,center_Frequencies,MF,BW] = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
+[Filter_Bank,center_Frequencies,MF,BW,M_tilda,Filter_Bank_of_ones]...
+    = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
 
 figure,plot(F,Filter_Bank.'),grid on;
 title("Mel Filter Bank- my implementation"),xlabel("Frequency (Hz)");
+figure,plot(F,Filter_Bank_of_ones.'),grid on;
+title("Mel Filter Bank- my implementation"),xlabel("Frequency (Hz)");
+figure,plot(F,M_tilda.'),grid on;
+title("Mel Filter Bank inv- my implementation"),xlabel("Frequency (Hz)");
 
-
+[pitchfrequency]=pitchestautocorr(ProcessedSig_therapist,Fs)
 
 
 %% add filterbank monipulations here!!!!
@@ -109,9 +116,12 @@ m = m+1;   % m [1...M=numBands]
 
 lamba_m = (2*m-1)/(2*NumBands);
 
-DCT_mat_lam = sqrt(2 / NumBands) * cos(pi * th_p_of_Lamda1(alpha(1),lamba_m).* k );
-DCT_mat_lam(1,:) = DCT_mat_lam(1,:) / sqrt(2);
-% round(DCT_mat_lam*DCT_mat_lam')
+warped_lamba_m = th_p_of_Lamda1(alpha(1),lamba_m)
+% DCT_mat = sqrt(2 / NumBands) * cos(pi * th_p_of_Lamda1(alpha(1),lamba_m).* k );
+% DCT_mat(1,:) = DCT_mat(1,:) / sqrt(2);
+DCT_mat = sqrt(2 / NumBands) * cos(pi *lamba_m.* k );
+DCT_mat(1,:) = DCT_mat(1,:) / sqrt(2);
+% round(DCT_mat*DCT_mat')
 
 alpha = 0.88: 0.02: 1.22;
 % warping the center frequency.
@@ -123,10 +133,6 @@ for j =1:NumBands
 end
 
 
-
-DCT_mat = sqrt(2 / NumBands) * cos(pi * (2*m - 1) .* k / (2 * NumBands));
-DCT_mat(1,:) = DCT_mat(1,:) / sqrt(2);
-
 % round(DCT_mat*DCT_mat') -> unitary!!
 inv_DCT_mat = DCT_mat';
 
@@ -134,10 +140,101 @@ inv_DCT_mat = DCT_mat';
 % To apply frequency domain filtering, perform a matrix multiplication of
 % the filter bank and the power spectrogram.
 melSpectrogram = Filter_Bank*PowerSpectrum;
+% melSpectrogram2 = Filter_Bank_of_ones*PowerSpectrum;
+% figure
+% surf(t,center_Frequencies,10*log10(melSpectrogram2),"EdgeColor","none");
+% view([0,90])
+% axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
+% xlabel('Time (s)')
+% ylabel('Frequency (Hz)')
+% c = colorbar;
+% c.Label.String = 'Power (dB)';
+% title("Therapist Filter Bank of ones")
+% % Visualize the power-per-band in dB.
+
+
+melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
+figure
+surf(t,center_Frequencies,melSpectrogramdB_cepstrum,"EdgeColor","none");
+view([0,90])
+axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
+xlabel('Time (s)')
+ylabel('Frequency (Hz)')
+c = colorbar;
+c.Label.String = 'Power (dB)';
+
+ccc = cepstralCoefficients(melSpectrogram,'NumCoeffs',NumBands);
+% by default the equasion is:
+MFCC_features = (DCT_mat*log10(melSpectrogram))';
+
+% M* is the matrix that transforms features from the
+% Mel-frequency domain (MFCC_features) to the linear frequency_domain
+Log_Mel_spectrum_frequency_domain = (inv_DCT_mat*MFCC_features');
+
+figure
+surf(t,center_Frequencies,10*Log_Mel_spectrum_frequency_domain,"EdgeColor","none");
+view([0,90])
+axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
+xlabel('Time (s)')
+ylabel('Frequency (Hz)')
+c = colorbar;
+c.Label.String = 'Power (dB)';
+title("Therapist")
+% Log_Mel_spectrum'*10 == melSpectrogramdB_cepstrum
+
+figure
+surf(t,1:NumBands,MFCC_features',"EdgeColor","none");
+view([0,90])
+axis([t(1) t(end) 1 NumBands])
+xlabel('Time (s)')
+ylabel('Frequency (Hz)')
+colormap(jet)
+title("MFCC features therapist")
+
+
+figure
+[C,~]=GMMlearn(MFCC_features,3);
+plot(C(1,1),C(1,2),'ko')
+plot(C(2,1),C(2,2),'ko')
+plot(C(3,1),C(3,2),'ko')
+hold off
+
+% Compute the delta and delta-delta MFCCs
+audio_dmfcc = diff(MFCC_features',1,2);
+audio_ddmfcc = diff(audio_dmfcc,1,2);
+
+
+% Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
+xtick_step = 0.2;
+number_samples = length(Signal_therapist);
+figure
+subplot(3,1,1), mfccshow(MFCC_features',number_samples,Fs,xtick_step), title('Therapist- MFCCs')
+subplot(3,1,2), mfccshow(audio_dmfcc,number_samples,Fs,xtick_step), title('Delta MFCCs')
+subplot(3,1,3), mfccshow(audio_ddmfcc,number_samples,Fs,xtick_step), title('Delta-delta MFCCs')
+
+
+%%
+[S,F,t] = stft(ProcessedSig_child,Fs, ...
+    "Window",hamming(WindowLenSamp,"periodic"), ...
+    "OverlapLength",noverlap, ...
+    "FrequencyRange","onesided");
+PowerSpectrum = S.*conj(S);
+
+NumBands = 13;
+range = [0,Fs/2];
+
+[Filter_Bank,center_Frequencies,MF,BW,M_tilda,Filter_Bank_of_ones]...
+    = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
+
+figure,plot(F,Filter_Bank.'),grid on;
+title("Mel Filter Bank"),xlabel("Frequency (Hz)");
+
+% To apply frequency domain filtering, perform a matrix multiplication of
+% the filter bank and the power spectrogram.
+melSpectrogram = Filter_Bank*PowerSpectrum;
 
 % Visualize the power-per-band in dB.
 melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
-
 
 
 figure
@@ -148,79 +245,32 @@ xlabel('Time (s)')
 ylabel('Frequency (Hz)')
 c = colorbar;
 c.Label.String = 'Power (dB)';
+title("child")
 
-ccc = cepstralCoefficients(melSpectrogram,'NumCoeffs',15);
+ccc = cepstralCoefficients(melSpectrogram,'NumCoeffs',NumBands);
 % by default the equasion is:
-MFCC_features = (DCT_mat*log10(melSpectrogram))';
-
-Log_Mel_spectrum = (inv_DCT_mat*MFCC_features')';
+MFCC_features_child = (DCT_mat*log10(melSpectrogram))';
 
 
-% [coeffs1,delta1,deltaDelta1,loc1] = mfcc(ProcessedSig_therapist,Fs,...
-%     "OverlapLength",noverlap);
-% figure
-% mfcc(ProcessedSig_therapist,Fs,"LogEnergy","Ignore",...
-%         "OverlapLength",noverlap);
-%
-% [coeffs,delta,deltaDelta,loc] = mfcc(S,Fs,...
-%         "OverlapLength",noverlap);
-% figure
-% mfcc(S,Fs,"LogEnergy","Ignore",...
-%         "OverlapLength",noverlap);
+figure
+surf(t,1:NumBands,MFCC_features_child',"EdgeColor","none");
+view([0,90])
+axis([t(1) t(end) 1 NumBands])
+xlabel('Time (s)')
+ylabel('Frequency (Hz)')
+colormap(jet)
+title("MFCC features child")
+% Log_Mel_spectrum'*10 == melSpectrogramdB_cepstrum
 
-%%
+% Compute the delta and delta-delta MFCCs
+audio_dmfcc_child = diff(MFCC_features_child',1,2);
+audio_ddmfcc_child = diff(audio_dmfcc_child,1,2);
 
 
-
-%
-%
-%
-%
-%
-% % Example: Compute and display the mel filterbank.
-% % Compute the mel filterbank using some parameters
-% number_mels = 128;
-% mel_filterbank = melfilterbank(Fs,WindowLength*Fs,number_mels);
-%
-% % Display the mel filterbank
-% figure
-% imagesc(mel_filterbank)
-% axis xy
-% colormap(jet)
-% title('Mel filterbank')
-% xlabel('Frequency index')
-% ylabel('Mel index')
-%
-% %    Example: Compute and display the MFCCs, delta MFCCs, and delta-delta MFCCs.
-% % Read the audio signal with its sampling frequency in Hz, and average it over its channels
-%
-% % Set the parameters for the Fourier analysis
-% window_length = 2^nextpow2(0.04*Fs);
-% window_function = hamming(window_length,'periodic');
-% step_length = window_length/2;
-%
-% % Compute the mel filterbank
-% number_mels = 40;
-% mel_filterbank = melfilterbank(Fs,window_length,number_mels);
-%
-% % Compute the MFCCs using the filterbank
-% number_coefficients = 20;
-% audio_mfcc = MFCC(Signal_therapist,window_function,step_length,mel_filterbank,number_coefficients);
-%
-% % Compute the delta and delta-delta MFCCs
-% audio_dmfcc = diff(audio_mfcc,1,2);
-% audio_ddmfcc = diff(audio_dmfcc,1,2);
-%
-% % Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
-% time_resolution = Fs*size(audio_mfcc,2)/length(Signal_therapist);
-%
-% % Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
-% xtick_step = 1;
-% number_samples = length(Signal_therapist);
-% figure
-% subplot(3,1,1), mfccshow(audio_mfcc,number_samples,Fs,xtick_step), title('MFCCs')
-% subplot(3,1,2), mfccshow(audio_dmfcc,number_samples,Fs,xtick_step), title('Delta MFCCs')
-% subplot(3,1,3), mfccshow(audio_ddmfcc,number_samples,Fs,xtick_step), title('Delta-delta MFCCs')
-%
-%
+% Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
+number_samples = length(Signal_child);
+figure
+subplot(3,1,1), mfccshow(MFCC_features',number_samples,Fs,xtick_step), title('child-MFCCs')
+subplot(3,1,2), mfccshow(audio_dmfcc_child,number_samples,Fs,xtick_step), title('Delta MFCCs')
+subplot(3,1,3), mfccshow(audio_ddmfcc_child,number_samples,Fs,xtick_step), title('Delta-delta MFCCs')
 

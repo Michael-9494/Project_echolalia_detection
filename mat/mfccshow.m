@@ -1,6 +1,6 @@
 function mfccshow(audio_mfcc,number_samples,sampling_frequency,xtick_step)
             % mfccshow Display MFCCs in seconds.
-            %   zaf.mfccshow(audio_mfcc,number_samples,sampling_frequency,xtick_step)
+            %   mfccshow(audio_mfcc,number_samples,sampling_frequency,xtick_step)
             %   
             %   Inputs:
             %       audio_mfcc: audio MFCCs [number_coefficients, number_times]
@@ -9,7 +9,7 @@ function mfccshow(audio_mfcc,number_samples,sampling_frequency,xtick_step)
             %       xtick_step: step for the x-axis ticks in seconds (default: 1 second)
             
             % Set the default values for xtick_step
-            if nargin <= 4
+            if nargin < 4
                 xtick_step = 1;
             end
             
@@ -28,6 +28,9 @@ function mfccshow(audio_mfcc,number_samples,sampling_frequency,xtick_step)
             imagesc(audio_mfcc)
             axis xy
             colormap(jet)
+%             c = colorbar;
+%             c.Label.String = 'Power (dB)';
+
             xticks(xtick_locations)
             xticklabels(xtick_labels)
             xlabel('Time (s)')
