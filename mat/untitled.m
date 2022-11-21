@@ -66,6 +66,10 @@ noverlap=((Overlap)*WindowLength)/100 *Fs;
 [ProcessedSig,FramedSig] = PreProcess(Signal(...
     EcholaliaEventTherapistStart(1)*Fs-5*Fs:EcholaliaEventTherapistEnd(1)*Fs+5*Fs),Fs,alpha,WindowLength,Overlap);
 Signal_Energy=calcNRG(FramedSig);
+
+frames_Therapist = splitWavByEvent(Signal, EcholaliaEventTherapistStart,EcholaliaEventTherapistEnd,Fs);
+frames_Child = splitWavByEvent(Signal, EcholaliaEventChildStart,EcholaliaEventChildEnd,Fs);
+
 % baseline energy level, Eb
 Eb = mean(Signal_Energy);
 
@@ -73,35 +77,6 @@ Eb = mean(Signal_Energy);
 [ProcessedSig_child,FramedSig_child] = PreProcess(Signal_child,Fs,alpha,WindowLength,Overlap);
 % soundsc(ProcessedSig_therapist,Fs);
 % soundsc(ProcessedSig_child,Fs);
- [Idx,idx_vec_start,idx_vec_end] = FindWordIdx(ProcessedSig_therapist,FramedSig_therapist,Fs,WindowLength,Overlap);
+%  [Idx,idx_vec_start,idx_vec_end] = FindWordIdx(ProcessedSig_therapist,FramedSig_therapist,Fs,WindowLength,Overlap);
 
-
-% [res1,res2,speechsegment,utforste,ltforste,ltforzcr]...
-%     =endpointdetection(Signal_child,Fs,WindowLenSamp);
-% Convert the audio signal to a frequency-domain representation using 30 ms
-% windows with 15 ms overlap. Because the input is real and therefore the
-% spectrum is symmetric, you can use just one side of the frequency domain
-% representation without any loss of information. Convert the complex
-% spectrum to the magnitude spectrum: phase information is discarded
-% when calculating mel frequency cepstral coefficients (MFCC).
-
-
-[S,F,t] = stft(ProcessedSig_therapist,Fs, ...
-    "Window",hamming(WindowLenSamp,"periodic"), ...
-    "OverlapLength",noverlap, ...
-    "FrequencyRange","onesided");
-PowerSpectrum = S.*conj(S);
-
-NumBands = 13;
-range = [0,Fs/2];
-
-[Filter_Bank,center_Frequencies,MF,BW,M_tilda,Filter_Bank_of_ones]...
-    = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
-
-figure,plot(F,Filter_Bank.'),grid on;
-title("Mel Filter Bank- my implementation"),xlabel("Frequency (Hz)");
-figure,plot(F,Filter_Bank_of_ones.'),grid on;
-title("Mel Filter Bank- my implementation"),xlabel("Frequency (Hz)");
-figure,plot(F,M_tilda.'),grid on;
-title("Mel Filter Bank inv- my implementation"),xlabel("Frequency (Hz)");
 
