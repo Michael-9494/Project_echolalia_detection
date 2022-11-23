@@ -25,8 +25,8 @@ EcholaliaEventChildEnd =ADOS_mat( strcmp({'Echolalia'}, ADOS_table.Var4)...
     & strcmp({'Child'}, ADOS_table.Var3) ,2);
 
 
-frames_Therapist = splitWavByEvent(Signal, EcholaliaEventTherapistStart,EcholaliaEventTherapistEnd,Fs);
-frames_Child = splitWavByEvent(Signal, EcholaliaEventChildStart,EcholaliaEventChildEnd,Fs);
+frames_Therapist = splitWavByEvent(Signal, EcholaliaEventTherapistStart,EcholaliaEventTherapistEnd,Fs,ADOS_table);
+frames_Child = splitWavByEvent(Signal, EcholaliaEventChildStart,EcholaliaEventChildEnd,Fs,ADOS_table);
 
 % lets look at the first occurrence of echolalia at the therapist
 Signal_therapist = Signal(EcholaliaEventTherapistStart(1)*Fs:EcholaliaEventTherapistEnd(1)*Fs);
@@ -267,7 +267,7 @@ melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
 
 
 figure
-surf(t,center_Frequencies,melSpectrogramdB_cepstrum,"EdgeColor","none");
+surf(t,center_Frequencies,melSpectrogramdB_cepstrum',"EdgeColor","none");
 view([0,90])
 axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
 xlabel('Time (s)')
