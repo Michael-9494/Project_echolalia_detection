@@ -3,14 +3,9 @@ clear;close all;clc
 
 %
 %  gpuDevice(1)
-%   done
-%   Recs_for_cry_scream_25092022    
-%   Recs_for_cry_scream_18092022
 
-Data_Folder = "Y:\Database\Recordings_for_Segmentor\Michael\Recs_for_cry_scream\Recs_for_cry_scream_010922\";
-%   undone:
-%   
-
+% Recs_for_cry_scream_25092022
+Data_Folder = "Y:\Database\Recordings_for_Segmentor\Michael\Recs_for_cry_scream\Recs_for_cry_scream_18092022\";
 % cd(Data_Folder);
 %   664179718_131216\664179718_131216.wav
 Autism_data = dir(Data_Folder);
@@ -131,10 +126,10 @@ for file  = 3:length(Autism_data)
         % soundsc(frames_out_Ther(w).ProcessedSig,Fs);
         % soundsc(frames_out_ch(w).ProcessedSig,Fs);
     end
-    mF1_th(file) = mean(F1_ther(~isnan(F1_ther)));
-    mF2_th(file) = mean(F2_ther(~isnan(F2_ther)));
-    mF3_th(file) = mean(F3_ther(~isnan(F3_ther)));
-    mF4_th(file) = mean(F4_ther(~isnan(F4_ther)));
+    mF1_th(file) = mean(F1_ther(~isnan(F1_ther)))
+    mF2_th(file) = mean(F2_ther(~isnan(F2_ther)))
+    mF3_th(file) = mean(F3_ther(~isnan(F3_ther)))
+    mF4_th(file) = mean(F4_ther(~isnan(F4_ther)))
 
 
 
@@ -146,16 +141,9 @@ for file  = 3:length(Autism_data)
         F4_ch = [F4_ch all(file).frames_out_child(w).F4];
 
     end
-    mF1_ch(file) = mean(F1_ch(~isnan(F1_ch)));
-    mF2_ch(file) = mean(F2_ch(~isnan(F2_ch)));
-    mF3_ch(file) = mean(F3_ch(~isnan(F3_ch)));
-    mF4_ch(file) = mean(F4_ch(~isnan(F4_ch)));
-    Process_time_one_recording = toc;
-    
-    myFolders = split(Autism_data(file).name,"_");
-   sprintf("patient num %s from date %s is done. Process recording time is %d"...
-       ,myFolders{1},myFolders{2},Process_time_one_recording)
-
+    mF1_ch(file) = mean(F1_ch(~isnan(F1_ch)))
+    mF2_ch(file) = mean(F2_ch(~isnan(F2_ch)))
+    mF3_ch(file) = mean(F3_ch(~isnan(F3_ch)))
+    mF4_ch(file) = mean(F4_ch(~isnan(F4_ch)))
+    Process_time_one_recording = toc
 end
-all = all(3:end);
-save('Recs_for_cry_scream_18092022.mat','all', '-v7.3')

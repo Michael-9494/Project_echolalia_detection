@@ -1,16 +1,24 @@
 function Formantss=estimatePhonemeFormants(PhonemeSig,Fs,phonemeName,flag)
-% estimatePhonemeFormants takes the PhonemeSig and uses the Power spectral
-% density by calculating the P coefficients using AR LPC model estimation of
-% A general discrete-time model for speech production.
-% Input:
-% PhonemeSig - one phoneme (after pre-processing)
-% Fs - sampling frequency
-% phonemeName - a string with the phoneme name
-% OUTPUT:
-% h1 - handle for spectral estimation graph with Formants values
-% h2 - handle for zero-pole map with chosen poles
-rng default
-
+% % estimatePhonemeFormants takes the PhonemeSig and uses the Power spectral
+% % density by calculating the P coefficients using AR LPC model estimation of
+% % A general discrete-time model for speech production.
+% % Input:
+% % PhonemeSig - one phoneme (after pre-processing)
+% % Fs - sampling frequency
+% % phonemeName - a string with the phoneme name
+% % OUTPUT:
+% % h1 - handle for spectral estimation graph with Formants values
+% % h2 - handle for zero-pole map with chosen poles
+% % rng default
+% % p = Fs/1000 + 2; %model order
+% % r = xcorr(PhonemeSig); %auto corrolation vector
+% % [outAR,~] = lpc(PhonemeSig,p); %lpc coefficients
+% % G = r(1)-sum(outAR(2:end)'.*r(1:p));
+% %
+% % [H,w]=freqz(G,outAR); %frequency of LPC model and phonem
+% % [~,loc] = findpeaks(20*log(abs(H)));
+% % Formantss = w(loc)*Fs/(2*pi);
+%
 [Peri,omeg]=periodogram(PhonemeSig,[],'onesided');
 
 P = Fs/1000 +2;
@@ -43,21 +51,21 @@ rts = rts(imag(rts)>=0);
 angz = atan2(imag(rts),real(rts));
 % % Convert the angular frequencies in rad/sample represented by the angles to hertz and calculate the bandwidths of the formants.
 % % The bandwidths of the formants are represented by the distance of the prediction polynomial zeros from the unit circle.
-% [frqs,indices] = sort(angz.*(Fs/(2*pi)));
-% bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
-%
-% % Use the criterion that formant frequencies should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
-% nn = 1;
-% for kk = 1:length(frqs)
-%     if (frqs(kk) > 90 && bw(kk) <400)
-%         formants(nn) = frqs(kk);
-%         nn = nn+1;
-%     end
-% end
-% formants
+[frqs,indices] = sort(angz.*(Fs/(2*pi)));
+bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
 
-Formantss = angz(Poles_idx).*(Fs/(2*pi));
-Formantss = sort(Formantss);
+% Use the criterion that formant frequencies should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
+nn = 1;
+for kk = 1:length(frqs)
+    if (frqs(kk) > 90 && bw(kk) <400 && nn<=4)
+        Formantss(nn) = frqs(kk);
+        nn = nn+1;
+    end
+end
+% Formantss
+
+% Formantss = angz(Poles_idx).*(Fs/(2*pi));
+% Formantss = sort(Formantss);
 if flag==1
     hold on
     title(sprintf('Spectral Estimation of the Phenome %s',phonemeName))
@@ -83,12 +91,7 @@ if flag==1
     title(sprintf('AR Model Poles- using LPC- Phoneme %s',phonemeName))
     legend('LPC Zeros','LPC Poles','Z-plane Axes','Chosen Poles','Location','southeast')
 end
-end
 
-% A = lpc(x1,8);
-% rts = roots(A);
+end
 %
-% % Because the LPC coefficients are real-valued, the roots occur in complex conjugate pairs. Retain only the roots with one sign for the imaginary part and determine the angles corresponding to the roots.
-% rts = rts(imag(rts)>=0);
-% angz = atan2(imag(rts),real(rts));
-% %
+%

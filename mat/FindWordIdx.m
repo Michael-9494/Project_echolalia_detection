@@ -1,4 +1,4 @@
-function [Idx,idx_vec_start,idx_vec_end] = FindWordIdx(ProcessedSig,FramedSig,Fs,WindowLength,Overlap)
+function [Idx,Frames_with_vocal_phoneme] = FindWordIdx(FramedSig,Fs,WindowLength,Overlap)
 % FindWordIdx finds the start and end of speech using energy
 % calculation. based of certain threshold
 % FramedSig – the framed speech signal after preprocessing.
@@ -14,38 +14,40 @@ ZeroCrossingSignal = calcZCR(FramedSig);
 
 
 % baseline energy level, Eb
-Eb = mean(Signal_Energy);
+EbNRG = mean(Signal_Energy);
+EbZCR = mean(ZeroCrossingSignal);
 thresh=max(Signal_Energy)*0.02;
 
-th1 = 10 * log10(1.9) + Eb;
-Frames_with_vocal_phoneme=find(Signal_Energy>th1);
-th2 = 10 * log10(1.1) + Eb;
+th1 = 10 * log10(1.9) + EbNRG;
+Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & Signal_Energy<EbZCR);% 
+th2 = 10 * log10(1.1) + EbNRG;
 Frames_without_vocal_phoneme=find(Signal_Energy<th2);
 
 WindowLength_samples=WindowLength*Fs;   % [sec]*[sample/sec]=[sample]
 overlap_in_samples=((Overlap)*WindowLength_samples)/100; % overlap in samples
 
 
-figure
-subplot(2,1,1)
-plot(ZeroCrossingSignal),xlabel('frame number'),ylabel('Zero-crossing rate'),title("Signal ZCR");
-subplot(2,1,2),plot(1:length(Signal_Energy),Signal_Energy,"--o");
-title("Signal Energy"); xlabel 'segment index' ; ylabel 'Energy [dB]'
-grid on; hold on
-yline(Eb,'--m');yline(th1,'b');yline(th2,'g')
-legend('Energy','Eb ','th1','th2');
-hold on
+% figure
+% subplot(2,1,1)
+% plot(ZeroCrossingSignal),xlabel('frame number');
+% ylabel('Zero-crossing rate'),title("Signal ZCR");yline(EbZCR,'--m');
+% subplot(2,1,2),plot(1:length(Signal_Energy),Signal_Energy,"--o");
+% title("Signal Energy"); xlabel 'segment index' ; ylabel 'Energy [dB]'
+% grid on; hold on
+% yline(EbNRG,'--m');yline(th1,'b');yline(th2,'g')
+% legend('Energy','Eb ','th1','th2');
+% hold on
 
 
 
 Idx=[];
-Seg_end = Frames_with_vocal_phoneme((diff(Frames_with_vocal_phoneme)>17))+1;
+% Seg_end = Frames_with_vocal_phoneme+1;
 % Seg_end = Seg_end(2:end);
-Seg_end = [Seg_end ;Frames_with_vocal_phoneme(end)+1];
-idx_vec_end = Seg_end*overlap_in_samples;
+% Seg_end = [Seg_end ;Frames_with_vocal_phoneme(end)+1];
+% idx_vec_end = Seg_end*overlap_in_samples;
 
-Seg_start = Frames_without_vocal_phoneme((diff(Frames_without_vocal_phoneme)>17));
-idx_vec_start = Seg_start*overlap_in_samples;
+% Seg_start = Frames_without_vocal_phoneme;
+% idx_vec_start = Seg_start*overlap_in_samples;
 
 
 % find relevant index acording to the overlaping.
@@ -63,7 +65,7 @@ Idx(2)=idx_end;%+WindowLength_samples-1;
 % hold on
 % for i=1:length(idx_vec_start)
 % line([(Seg_start) (Seg_start)],ylim,'color','r','linewidth',1.2)
-hold on
+
 % line([(Seg_end) (Seg_end)],ylim,'color','b','linewidth',1.2)
 % end
 %  line([(Seg_end(end)) (Seg_end(end))],ylim,'color','b','linewidth',1.2)
