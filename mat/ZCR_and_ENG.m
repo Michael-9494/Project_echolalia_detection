@@ -1,4 +1,4 @@
-function [Idx,Frames_with_vocal_phoneme] = FindWordIdx(FramedSig,Fs,WindowLength,Overlap)
+function [Frames_with_vocal_phoneme,Signal_Energy,ZeroCrossingSignal] = ZCR_and_ENG(FramedSig,Fs,WindowLength,Overlap)
 % FindWordIdx finds the start and end of speech using energy
 % calculation. based of certain threshold
 % FramedSig – the framed speech signal after preprocessing.
@@ -11,20 +11,24 @@ function [Idx,Frames_with_vocal_phoneme] = FindWordIdx(FramedSig,Fs,WindowLength
 %
 Signal_Energy=calcNRG(FramedSig);%calculate  of each frame
 ZeroCrossingSignal = calcZCR(FramedSig);
-
+mzcr = mean(ZeroCrossingSignal);
+vzcr = var(ZeroCrossingSignal,1);
+mnrg = mean(Signal_Energy);
+vnrg = var(Signal_Energy,1);
 
 % baseline energy level, Eb
-EbNRG = mean(Signal_Energy);
-EbZCR = mean(ZeroCrossingSignal);
-thresh=max(Signal_Energy)*0.02;
 
-th1 = 10 * log10(1.9) + EbNRG;
-Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & Signal_Energy<EbZCR);% 
-th2 = 10 * log10(1.1) + EbNRG;
-Frames_without_vocal_phoneme=find(Signal_Energy<th2);
+EbNRG = mnrg;%+(sqrt(vnrg));
+EbZCR = mzcr-(sqrt(vzcr)/10);
 
-WindowLength_samples=WindowLength*Fs;   % [sec]*[sample/sec]=[sample]
-overlap_in_samples=((Overlap)*WindowLength_samples)/100; % overlap in samples
+% Eb = 10 * log10(1.9) + EbNRG;
+Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);% 
+
+% th2 = 10 * log10(1.1) + EbNRG;
+% Frames_without_vocal_phoneme=find(Signal_Energy<th2);
+% 
+% WindowLength_samples=WindowLength*Fs;   % [sec]*[sample/sec]=[sample]
+% overlap_in_samples=((Overlap)*WindowLength_samples)/100; % overlap in samples
 
 
 % figure
@@ -40,7 +44,7 @@ overlap_in_samples=((Overlap)*WindowLength_samples)/100; % overlap in samples
 
 
 
-Idx=[];
+% Idx=[];
 % Seg_end = Frames_with_vocal_phoneme+1;
 % Seg_end = Seg_end(2:end);
 % Seg_end = [Seg_end ;Frames_with_vocal_phoneme(end)+1];
@@ -50,11 +54,11 @@ Idx=[];
 % idx_vec_start = Seg_start*overlap_in_samples;
 
 
-% find relevant index acording to the overlaping.
-idx_start=(Frames_with_vocal_phoneme(1))*overlap_in_samples;
-Idx(1)=idx_start;
-idx_end=(Frames_with_vocal_phoneme(end))*overlap_in_samples;
-Idx(2)=idx_end;%+WindowLength_samples-1;
+% % find relevant index acording to the overlaping.
+% idx_start=(Frames_with_vocal_phoneme(1))*overlap_in_samples;
+% Idx(1)=idx_start;
+% idx_end=(Frames_with_vocal_phoneme(end))*overlap_in_samples;
+% Idx(2)=idx_end;%+WindowLength_samples-1;
 
 % 
 % figure
@@ -72,61 +76,7 @@ Idx(2)=idx_end;%+WindowLength_samples-1;
 % legend('speech','Eb','th1','th2','start ','end');grid on
 
 
-% 
-% 
-% temp1=ZeroCrossingSignal(1:10);
-% mzcr=mean(temp1);
-% vzcr=var(temp1,1);
-% temp2=Signal_Energy(1:10);
-% mste=mean(temp2);
-% vste=var(temp2,1);
-% ltforste=mste*100-(sqrt(vste)/10);
-% utforste=mste*100+(sqrt(vste)/10);
-% ltforzcr=mzcr*100-(sqrt(vzcr)/10);
-% res1=ZeroCrossingSignal;
-% res2=Signal_Energy;
-% figure
-% subplot(2,1,1)
-% plot(res1)
-% xlabel('frame number')
-% ylabel('Zero-crossing rate')
-% subplot(2,1,2)
-% plot(res2)
-% xlabel('frame number')
-% ylabel('Short-time energy')
-% 
-% 
-% [p1,q1]=find(res2>utforste);
-% temp3=res2(q1(1):-1:1);
-% [p2,q2]=find(temp3<ltforste);
-% if(isempty(q2)==1)
-%     q2(1)=0;
-%     temp4=res1(q1(1)-q2(1):-1:1);
-% else
-%     temp4=res1(q1(1)-q2(1):-1:1);
-% end
-% [p3,q3]=find(temp4<ltforzcr);
-% res2rev=res2(length(res2):-1:1);
-% [p4,q4]=find(res2rev>utforste);
-% temp5=res2rev(q4(1):-1:1);
-% [p5,q5]=find(temp5<ltforste);
-% res1rev=res1(length(res1):-1:1);
-% if(isempty(q5)==1)
-%     q5(1)=0;
-%     temp6=res1rev(q4(1)-q5(1):-1:1);
-% else
-%     temp6=res1rev(q4(1)-q5(1):-1:1);
-% end
-% [p6,q6]=find(temp6<ltforzcr);
-% speechsegment=ProcessedSig((length(temp4)-q3(1)+1)*WindowLength:1:length(ProcessedSig)...
-%     -(length(temp6)-q6(1)+1)*WindowLength);
-% figure
-% subplot(2,1,1)
-% plot(ProcessedSig)
-% title('Original speech signal')
-% subplot(2,1,2)
-% plot(speechsegment)
-% title('Speech segment after endpoint detection')
+
 % [m,n] = size(FramedSig); %number of windows of signal
 % word_win = zeros(m,1); %intializing the window flag on energy
 % 

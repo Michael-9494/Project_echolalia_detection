@@ -47,17 +47,17 @@ rts = roots(aa1);
 % conjugate pairs. Retain only the roots with one sign for the imaginary
 % part and determine the angles corresponding to the roots.
 rts = rts(imag(rts)>=0);
-[~,Poles_idx]=maxk(abs(rts),3);
+[~,Poles_idx]=maxk(abs(rts),4);
 angz = atan2(imag(rts),real(rts));
 % % Convert the angular frequencies in rad/sample represented by the angles to hertz and calculate the bandwidths of the formants.
 % % The bandwidths of the formants are represented by the distance of the prediction polynomial zeros from the unit circle.
 [frqs,indices] = sort(angz.*(Fs/(2*pi)));
 bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
 
-% Use the criterion that formant frequencies should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
+% Use the criterion that formant frequencies && bw(kk) >50  should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
 nn = 1;
 for kk = 1:length(frqs)
-    if (frqs(kk) > 90 && bw(kk) <400 && nn<=4)
+    if (frqs(kk) > 90 && bw(kk) <300   && nn<=3)
         Formantss(nn) = frqs(kk);
         nn = nn+1;
     end
