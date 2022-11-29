@@ -148,7 +148,7 @@ for i = 1:length(Recs_for_cry_scream1)
     end
     all = all(3:end);
     tic
-    save("Recs_for_cry_scream"+Recs_for_cry_scream1(i)+".mat",'all', '-v7.3')
+    save("Recs_for_cry_scream1"+Recs_for_cry_scream1(i)+".mat",'all', '-v7.3')
 
     % show time elapsed
     hours = floor(toc/3600);

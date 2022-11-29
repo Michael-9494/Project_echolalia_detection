@@ -4,7 +4,8 @@ flag = 0;
 
 
 load("Recs_for_cry_scream_25092022.mat")
-
+F1_ther = [];F2_ther = [];F3_ther = [];
+F1_ch = [];F2_ch = [];F3_ch = [];
 % Recs_for_cry_scream_18092022_ECHO
 for file = 1:length(all)
     for w = 1:length(all(file).frames_out_Therapist)
@@ -100,6 +101,15 @@ for file = 1:length(all)
             end
         end
     end
+    F1_ther = [F1_ther all(file).F1_ther(~isnan(all(file).F1_ther)) ];
+    F2_ther = [F2_ther all(file).F2_ther(~isnan(all(file).F2_ther)) ];
+    F3_ther = [F3_ther all(file).F3_ther(~isnan(all(file).F3_ther)) ];
+
+    F1_ch = [F1_ch all(file).F1_ch(~isnan(all(file).F1_ch)) ];
+    F2_ch = [F2_ch all(file).F2_ch(~isnan(all(file).F2_ch)) ];
+    F3_ch = [F3_ch all(file).F3_ch(~isnan(all(file).F3_ch)) ];
+
+
     mean_F1_ther(file) = mean(all(file).F1_ther(~isnan(all(file).F1_ther)) );
     mean_F2_ther(file) = mean(all(file).F2_ther(~isnan(all(file).F2_ther)) );
     mean_F3_ther(file) = mean(all(file).F3_ther(~isnan(all(file).F3_ther)) );
@@ -108,6 +118,39 @@ for file = 1:length(all)
     mean_F3_ch(file) = mean(all(file).F3_ch(~isnan(all(file).F3_ch)) );
 end
 
+% display the histograms of the Formants (F1-F3)
+
+figure
+histogram(F1_ther,NumBins=25,DisplayName="F1 therapist")
+xline(mean(F1_ther),"DisplayName","mean F1- therapist " + num2str(round(mean(F1_ther))),'Color','b')
+title([' F1 Therapist Child  ']);xlabel('Frequency[Hz]');
+hold on
+histogram(F1_ch,NumBins=25,DisplayName="F1 child");legend
+xline(mean(F1_ch),"DisplayName","mean F1- Child "+ num2str(round(mean(F1_ch))),'Color','r')
+xlabel('Frequency[Hz]');
+
+figure
+histogram(F2_ther,NumBins=25,DisplayName="F2 therapist")
+xline(mean(F2_ther),"DisplayName","mean F2- therapist " + num2str(round(mean(F2_ther))),'Color','b')
+title([' F2 Therapist Child  ']);xlabel('Frequency[Hz]');
+hold on
+histogram(F2_ch,NumBins=25,DisplayName="F2 child");legend
+xline(mean(F2_ch),"DisplayName","mean F2- Child "+ num2str(round(mean(F2_ch))),'Color','r')
+xlabel('Frequency[Hz]');
+
+figure
+histogram(F3_ther,NumBins=25,DisplayName="F3 therapistn")
+xline(mean(F3_ther),"DisplayName","mean F3- therapist " + num2str(round(mean(F3_ther))),'Color','b')
+title([' F3 Therapist Child  ']);xlabel('Frequency[Hz]');
+hold on
+histogram(F3_ch,NumBins=25,DisplayName="F3 child");legend
+xline(mean(F3_ch),"DisplayName","mean F3- Child "+ num2str(round(mean(F3_ch))),'Color','r')
+xlabel('Frequency[Hz]');
+
+
+
+
+% display the histograms of the mean Formants (F1-F3)
 
 figure
 histogram(mean_F1_ther(:),NumBins=15,DisplayName="F1 therapist")

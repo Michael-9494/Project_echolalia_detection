@@ -19,7 +19,7 @@ vnrg = var(Signal_Energy,1);
 % baseline energy level, Eb
 
 EbNRG = mnrg;%+(sqrt(vnrg));
-EbZCR = mzcr-(sqrt(vzcr)/10);
+EbZCR = mzcr;
 
 % Eb = 10 * log10(1.9) + EbNRG;
 Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);% 

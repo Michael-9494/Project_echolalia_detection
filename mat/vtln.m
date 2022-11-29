@@ -64,10 +64,10 @@ for j = 1:length(frames)
             %     1
             %end
         end
-        omega_warped(find(omega <= omega0)) = alpha .* omega(find(omega <= omega0));
-        omega_warped(find(omega > omega0)) = alpha * omega0 + ((pi - alpha * omega0)/(pi - omega0)) .* (omega(find(omega > omega0)) - omega0);
+        omega_warped((omega <= omega0)) = alpha .* omega((omega <= omega0));
+        omega_warped((omega > omega0)) = alpha * omega0 + ((pi - alpha * omega0)/(pi - omega0)) .* (omega((omega > omega0)) - omega0);
 
-        omega_warped(find(omega_warped >= pi)) = pi - 0.00001 + 0.00001 * (omega_warped(find(omega_warped >= pi)));
+        omega_warped((omega_warped >= pi)) = pi - 0.00001 + 0.00001 * (omega_warped((omega_warped >= pi)));
 
     elseif strcmp(warpFunction, 'power')
         omega_warped = pi .* (omega./pi) .^ alpha;
@@ -86,7 +86,7 @@ for j = 1:length(frames)
     %     warpFunction
     %    plotopts = "-k";
     %end
-    omega_warped = [omega_warped ./ pi .* m];
+    omega_warped = omega_warped ./ pi .* m;
     warpedFrame = interp1((1:m), frames(j).data, omega_warped, 'linear').';
 
     if isreal(frames(j).data(end))
@@ -96,9 +96,8 @@ for j = 1:length(frames)
     warpedFrame(isnan(warpedFrame)) = 0;
     warpedFreqs(j).data = warpedFrame;
     figure
-    h = plot((1:m)./m*pi, omega_warped./m*pi, plotopts);
-    set (h(1), "linewidth", 3);
-    plot(1,1, 'w');
+   plot((1:m)./m*pi, omega_warped./m*pi, "b");
+   
 end
 
 %end
