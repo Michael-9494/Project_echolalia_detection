@@ -3,11 +3,11 @@ Data_Folder_out = "Y:\Database\Recordings_for_Segmentor\Michael\Recs_for_cry_scr
 Fs = 16000;
 flag =0;
 Autism_data = dir(Data_Folder_out); Autism_data = Autism_data(4:end);
-Recs_for_cry_scream =[Autism_data(1).name, Autism_data(2).name, Autism_data(3).name,...
-    Autism_data(4).name, Autism_data(5).name, Autism_data(6).name,...
-    Autism_data(7).name, Autism_data(8).name, Autism_data(9).name];
-Recs_for_cry_scream1 = split(Recs_for_cry_scream,"Recs_for_cry_scream");
-Recs_for_cry_scream1 = Recs_for_cry_scream1(2:end);
+% Recs_for_cry_scream =[Autism_data(1).name, Autism_data(2).name, Autism_data(3).name,...
+%     Autism_data(4).name, Autism_data(5).name, Autism_data(6).name,...
+%     Autism_data(7).name, Autism_data(8).name, Autism_data(9).name];
+% Recs_for_cry_scream1 = split(Recs_for_cry_scream,"Recs_for_cry_scream");
+Recs_for_cry_scream1 ="_25092022";
 
 F1_ther = [];F2_ther = [];F3_ther = [];
 F1_ch = [];F2_ch = [];F3_ch = [];

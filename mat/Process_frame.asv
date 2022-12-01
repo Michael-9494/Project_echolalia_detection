@@ -22,8 +22,9 @@ for i = 1:segments(2)
         frames_out(i).segment_event = frames(i).event;
         %         time2freq 
         P2 = fft(frames_out(i).Signal_frame)/length(frames_out(i).Signal_frame);% perform fft > it gives double-spectrum and distribute energy
-        freqs = P2(1:floor(length(frames_out(i).Signal_frame)/2)+1);              % get one-side spectrum
+        freqs = P2(1:nt/2+1);              % get one-side spectrum
         freqs(2:end-1) = 2*freqs(2:end-1);    % Multiple by 2 as a correction for amplitude
+        freqs2 = freq(1:ceil((length(freq)+1)/2));
 
         [~,frames_out(i).FramedSig] = PreProcess(...
             frames_out(i).Signal_frame,Fs,Param.alpha,Param.WindowLength,Param.Overlap);

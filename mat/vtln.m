@@ -1,4 +1,4 @@
-function warpedFreqs = vtln(frames, warpFunction, alpha)
+function warpedFreqs = vtln(frame, warpFunction, alpha)
 
 if ~(strcmp(warpFunction, 'asymmetric') || strcmp(warpFunction, 'symmetric') || ...
         strcmp(warpFunction, 'power') || strcmp(warpFunction, 'quadratic') || ...
@@ -7,7 +7,7 @@ if ~(strcmp(warpFunction, 'asymmetric') || strcmp(warpFunction, 'symmetric') || 
     error('Invalid warp function');
 end
 
-warpedFreqs = struct();
+% warpedFreqs = struct();
 
 %frames = struct();
 %frames(1).data = 1:100;
@@ -43,8 +43,8 @@ warpedFreqs = struct();
 %end
 %k
 
-for j = 1:length(frames)
-    m = length(frames(j).data);
+% for j = 1:length(frames)
+    m = length(frame);
     omega = (1:m) ./ m .* pi;
     omega_warped = omega;
     %plotopts = '';
@@ -87,28 +87,29 @@ for j = 1:length(frames)
     %    plotopts = "-k";
     %end
     omega_warped = omega_warped ./ pi .* m;
-    warpedFrame = interp1((1:m), frames(j).data, omega_warped, 'linear').';
+    warpedFrame = interp1((1:m), frame, omega_warped).';
 
-    if isreal(frames(j).data(end))
+    if isreal(frame(end))
         warpedFrame(end) = real(warpedFrame(end));
     end
 
     warpedFrame(isnan(warpedFrame)) = 0;
-    warpedFreqs(j).data = warpedFrame;
-    figure
-   plot((1:m)./m*pi, omega_warped./m*pi, "b");
-   
+    warpedFreqs = warpedFrame;
+%     figure
+%     plot((1:m)./m*pi, omega_warped./m*pi, "b"); grid on;hold on
+%     plot((1:m)./m*pi,(1:m)./m*pi,"g");axis tight
+
 end
 
 %end
 
-
-set (gca,'fontsize',25);
-l = legend('symmetric', ' ', 'asymmetric',' ', 'power',' ', 'quadratic',' ', 'bilinear',' ', 'neutral', ' ', 'location','southeast');
-set(l, 'FontSize', 18);
-set(gca,'XTick',0:pi/2:pi)
-set(gca,'XTickLabel',{'0','pi/2','pi'})
-set(gca,'YTick',0:pi/2:pi)
-set(gca,'YTickLabel',{'0','pi/2','pi'})
-axis([0 pi 0 pi+0.1])
-print -depsc2 test.eps;
+%
+% set (gca,'fontsize',25);
+% l = legend('symmetric', ' ', 'asymmetric',' ', 'power',' ', 'quadratic',' ', 'bilinear',' ', 'neutral', ' ', 'location','southeast');
+% set(l, 'FontSize', 18);
+% set(gca,'XTick',0:pi/2:pi)
+% set(gca,'XTickLabel',{'0','pi/2','pi'})
+% set(gca,'YTick',0:pi/2:pi)
+% set(gca,'YTickLabel',{'0','pi/2','pi'})
+% axis([0 pi 0 pi+0.1])
+% print -depsc2 test.eps;

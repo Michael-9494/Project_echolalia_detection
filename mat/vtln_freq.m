@@ -67,13 +67,79 @@ EcholaliaEventChildEnd =ADOS_mat( strcmp({'Echolalia'}, ADOS_table.Var4)...
 
 frames_Therapist = splitWavByEvent(ProcessedSig, EcholaliaEventTherapistStart,EcholaliaEventTherapistEnd,Fs,ADOS_table,Param);
 frames_Child = splitWavByEvent(ProcessedSig, EcholaliaEventChildStart,EcholaliaEventChildEnd,Fs,ADOS_table,Param);
-[frames_out_Child] = Process_frame(frames_Child,Fs,Param,0)
+alpha = 1.1;
+[frames_out_child] = Process_frame(frames_Child,Fs,Param,0,1,alpha);
+[frames_out_Therapist] = Process_frame(frames_Therapist,Fs,Param,0,0,alpha);
 
-alpha=1.2;
-fRatio=1.2;
-freqs_Child = time2freq(frames_out_Child);
-warpedFreqs = vtln(freqs_Child, "symmetric", alpha);
 
-warpedWav = freq2time(warpedFreqs);
-wavOut = psola(warpedWav, fRatio);
-audiowrite(string(Autism_data_in(3).name +"_29112022.wav"),wavOut, Fs );
+
+
+pause(1)
+soundsc(frames_out_Therapist(2).Signal_frame,16000);
+figure(2);subplot(3,2,1);
+ plot(frames_out_Therapist(2).t,frames_out_Therapist(2).Signal_frame)
+title(['speech signal ' frames_out_Therapist(2).segment_event]);
+xlabel('time[s]');ylabel('amp'); axis tight
+
+figure(2);subplot(3,2,3)
+plot(frames_out_child(2).t,frames_out_child(2).Signal_frame)
+title(['speech signal ' frames_out_child(2).segment_event]);
+xlabel('time[s]');ylabel('amp'); axis tight
+
+T = 1/Fs;             % Sampling period
+Len = length(frames_out_child(2).warpedSignal);
+t = frames_out_child(2).t(1) + (0:Len-1)*T;% Time vector
+figure(2);subplot(3,2,5); plot(t,frames_out_child(2).warpedSignal)
+title(['speech signal warpedSignal ' frames_out_child(2).segment_event]);
+xlabel('time[s]');ylabel('amp')
+axis tight; hold on
+
+figure(2);subplot(3,2,2)
+surf(frames_out_Therapist(2).t_for_spect,frames_out_Therapist(2).F,...
+    10*log10(frames_out_Therapist(2).PowerSpectrum),"DisplayName","P_{Spectrum}","EdgeColor","none");
+view([0,90]); hold on
+axis([frames_out_Therapist(2).t_for_spect(1) frames_out_Therapist(2).t_for_spect(end) frames_out_Therapist(2).F(1) frames_out_Therapist(2).F(end)])
+xlabel('Time (s)');hold on
+plot(frames_out_Therapist(2).t_for_spect,frames_out_Therapist(2).F1,"b","DisplayName","F_1");
+hold on;
+plot(frames_out_Therapist(2).t_for_spect,frames_out_Therapist(2).F2,"r","DisplayName","F_2");
+hold on;
+plot(frames_out_Therapist(2).t_for_spect,frames_out_Therapist(2).F3,"k","DisplayName","F_3");
+hold on;ylabel('Frequency (Hz)');title("Therapist")
+
+pause(2)
+soundsc(frames_out_child(2).Signal_frame,16000);
+
+figure(2);subplot(3,2,4)
+surf(frames_out_child(2).t_for_spect,...
+    frames_out_child(2).F,10*log10(frames_out_child(2).PowerSpectrum),...
+    "DisplayName","Power Spectrum","EdgeColor","none");
+view([0,90]); hold on
+axis([frames_out_child(2).t_for_spect(1) frames_out_child(2).t_for_spect(end) frames_out_child(2).F(1) frames_out_child(2).F(end)])
+xlabel('Time (s)');hold on
+plot(frames_out_child(2).t_for_spect,frames_out_child(2).F1,"b","DisplayName","F_1");
+hold on;
+plot(frames_out_child(2).t_for_spect,frames_out_child(2).F2,"r","DisplayName","F_2");
+hold on;
+plot(frames_out_child(2).t_for_spect,frames_out_child(2).F3,"k","DisplayName","F_3");
+hold on;
+ylabel('Frequency (Hz)')
+title("child")
+pause(2)
+soundsc(frames_out_child(2).warpedSignal,16000);
+
+hold on; figure(2);subplot(3,2,6);
+surf(frames_out_child(2).t_for_spectWarped,...
+    frames_out_child(2).FWarped,10*log10(frames_out_child(2).PowerSpectrumWarped),...
+    "DisplayName","Power Spectrum","EdgeColor","none");
+view([0,90]); hold on
+axis([frames_out_child(2).t_for_spectWarped(1) frames_out_child(2).t_for_spectWarped(end) frames_out_child(2).FWarped(1) frames_out_child(2).FWarped(end)])
+xlabel('Time (s)');hold on
+plot(frames_out_child(2).t_for_spectWarped,frames_out_child(2).F1Warped,"b","DisplayName","F_1");
+hold on;
+plot(frames_out_child(2).t_for_spectWarped,frames_out_child(2).F2Warped,"r","DisplayName","F_2");
+hold on;
+plot(frames_out_child(2).t_for_spectWarped,frames_out_child(2).F3Warped,"k","DisplayName","F_3");
+hold on;
+ylabel('Frequency (Hz)')
+title("child Warped spectrum")
