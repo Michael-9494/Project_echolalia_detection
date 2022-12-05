@@ -67,7 +67,7 @@ end
         omega_warped((omega <= omega0)) = alpha .* omega((omega <= omega0));
         omega_warped((omega > omega0)) = alpha * omega0 + ((pi - alpha * omega0)/(pi - omega0)) .* (omega((omega > omega0)) - omega0);
 
-        omega_warped((omega_warped >= pi)) = pi - 0.00001 + 0.00001 * (omega_warped((omega_warped >= pi)));
+%         omega_warped((omega_warped >= pi)) = pi - 0.00001 + 0.00001 * (omega_warped((omega_warped >= pi)));
 
     elseif strcmp(warpFunction, 'power')
         omega_warped = pi .* (omega./pi) .^ alpha;
@@ -87,7 +87,7 @@ end
     %    plotopts = "-k";
     %end
     omega_warped = omega_warped ./ pi .* m;
-    warpedFrame = interp1((1:m), frame, omega_warped).';
+    warpedFrame = interp1((1:m), frame, omega_warped).';%spline ,'linear','extrap'
 
     if isreal(frame(end))
         warpedFrame(end) = real(warpedFrame(end));
@@ -112,4 +112,4 @@ end
 % set(gca,'YTick',0:pi/2:pi)
 % set(gca,'YTickLabel',{'0','pi/2','pi'})
 % axis([0 pi 0 pi+0.1])
-% print -depsc2 test.eps;
+% % print -depsc2 test.eps;

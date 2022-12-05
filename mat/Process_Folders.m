@@ -69,8 +69,24 @@ for file  = 3:length(Autism_data_in)
     StartChild = ADOS_mat( strcmp({'Child'}, ADOS_table.Var3) ,1);
     EndChild = ADOS_mat( strcmp({'Child'}, ADOS_table.Var3) ,2);
 
-    frames_Therapist = splitWavByEvent(ProcessedSig, StartTherapist,EndTherapist,Fs,ADOS_table);
-    frames_Child = splitWavByEvent(ProcessedSig, StartChild,EndChild,Fs,ADOS_table);
+    frames_Therapist = splitWavByEvent(ProcessedSig, StartTherapist,EndTherapist,Fs,ADOS_table,Param);
+    frames_Child = splitWavByEvent(ProcessedSig, StartChild,EndChild,Fs,ADOS_table,Param);
+    ZCR_ther = [];NRG_ther = [];ZCR_ch = [];NRG_ch = [];
+
+    for w = 1:length(frames_Therapist)
+        ZCR_ther = [ZCR_ther frames_Therapist(w).ZCR];
+        NRG_ther = [NRG_ther frames_Therapist(w).NRG];
+    end
+    Param.ZCR_median_therapist = mean(ZCR_ther);
+    Param.NRG_median_therapist = mean(NRG_ther);
+
+    for w = 1:length(frames_Child)
+        ZCR_ch = [ZCR_ch frames_Child(w).ZCR];
+        NRG_ch = [NRG_ch frames_Child(w).NRG];
+    end
+    Param.ZCR_median_Child = mean(ZCR_ch);
+    Param.NRG_median_Child = mean(NRG_ch);
+
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % finished with reading child and therapist segments
@@ -79,11 +95,12 @@ for file  = 3:length(Autism_data_in)
     all(file).Child_name = myFolders{1};
     all(file).ADOS_date = myFolders{2};
 
-    all(file).frames_out_Therapist = Process_frame(frames_Therapist,Fs,Param,0,0);
-    all(file).frames_out_child = Process_frame(frames_Child,Fs,Param,0,1,1.2);
+    all(file).frames_out_Therapist = Process_frame(frames_Therapist,Fs,Param,flag,0);
+    all(file).frames_out_child = Process_frame(frames_Child,Fs,Param,flag,1,1.2);
 
     all(file).F1_ther = [];all(file).F2_ther = [];all(file).F3_ther = [];%all(file).F4_ther = [];
     all(file).F1_ch = [];all(file).F2_ch = [];all(file).F3_ch = [];%F4_ch = [];
+    
     for w = 1:length(all(file).frames_out_Therapist)
         all(file).F1_ther = [all(file).F1_ther all(file).frames_out_Therapist(w).F1];
         all(file).F2_ther = [all(file).F2_ther all(file).frames_out_Therapist(w).F2];
@@ -115,7 +132,7 @@ end
 all = all(3:end);
 tic
 disp(['start saving'+ string(Recs_for_cry_scream1)])
-save("Recs_for_cry_scream_alpha_1_2_01122022"+Recs_for_cry_scream1+".mat",'all', '-v7.3');%(i)
+save("Recs_VTLN_alpha_1_2_04122022_3"+Recs_for_cry_scream1+".mat",'all', '-v7.3');%(i)
 
 % show time elapsed
 hours = floor(toc/3600);

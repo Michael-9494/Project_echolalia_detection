@@ -12,20 +12,20 @@ for i = 1:segments(2)
     if isempty(frames(i).data)
         continue
     else
-% Y = fft(St);                    % perform fft > it gives double-spectrum 
-% P2 = (Y/nt);                    % distribute energy
-% P1 = P2(1:nt/2+1);              % get one-side spectrum
-% P1(2:end-1) = 2*P1(2:end-1);    % Multiple by 2 as a correction for amplitude
-% Sf = P1;
+        % Y = fft(St);                    % perform fft > it gives double-spectrum
+        % P2 = (Y/nt);                    % distribute energy
+        % P1 = P2(1:nt/2+1);              % get one-side spectrum
+        % P1(2:end-1) = 2*P1(2:end-1);    % Multiple by 2 as a correction for amplitude
+        % Sf = P1;
         frames_out(i).Signal_frame = frames(i).data;
         frames_out(i).segment_speaker = frames(i).speakreLabel;
         frames_out(i).segment_event = frames(i).event;
-        %         time2freq 
+        %         time2freq
         P2 = fft(frames_out(i).Signal_frame)/length(frames_out(i).Signal_frame);% perform fft > it gives double-spectrum and distribute energy
         freqs = P2(1:floor(length(frames_out(i).Signal_frame)/2)+1);              % get one-side spectrum
         freqs(2:end-1) = 2*freqs(2:end-1);    % Multiple by 2 as a correction for amplitude
 
-        [~,frames_out(i).FramedSig] = PreProcess(...
+        [~,FramedSig] = PreProcess(...
             frames_out(i).Signal_frame,Fs,Param.alpha,Param.WindowLength,Param.Overlap);
 
         T = 1/Fs;             % Sampling period
@@ -39,23 +39,30 @@ for i = 1:segments(2)
         % representation without any loss of information. Convert the complex
         % spectrum to the magnitude spectrum: phase information is discarded
         % when calculating mel frequency cepstral coefficients (MFCC).
-        [S,frames_out(i).F,frames_out(i).t_for_spect] = stft(frames_out(i).Signal_frame,Fs, ...
+        [S,frames_out(i).F_for_spect,frames_out(i).t_for_spect] = stft(frames_out(i).Signal_frame,Fs, ...
             "Window",hamming(Param.WindowLenSamp,"periodic"), ...
             "OverlapLength",Param.noverlap, ...
             "FrequencyRange","onesided");
         frames_out(i).PowerSpectrum = S.*conj(S);
         frames_out(i).t_for_spect = frames_out(i).t_for_spect + frames(i).start_time;
 
-        [n,~] =size(frames_out(i).FramedSig);
-        [Frames_with_vocal_phoneme,frames_out(i).Signal_Energy,...
-            frames_out(i).ZeroCrossingSignal] = ZCR_and_ENG(...
-            frames_out(i).FramedSig,Fs,Param.WindowLength,Param.Overlap);
+        [n,~] =size(FramedSig);
+        [Frames_with_vocal_phoneme] = ZCR_and_ENG(FramedSig,Param,frames_out(i).segment_speaker);
+        if isempty(Frames_with_vocal_phoneme)
+            continue
+        end
         frames_out(i).F1 = [];frames_out(i).F2 = [];frames_out(i).F3 = [];%frames_out(i).F4 = [];
+
+        frames_out(i).LPC_mat = [];
         for j = 1:n
+            [~,LPc_dB,frames_out(i).F]=estimatePhonemeFormants(...
+                FramedSig(j,:),Fs,"h",flag);
+            frames_out(i).LPC_mat = [frames_out(i).LPC_mat LPc_dB];
+
             if any(Frames_with_vocal_phoneme== j)
                 % need to take out the unvoiced segments!!!!!!!!!!!!!!!
-                Formants=estimatePhonemeFormants(...
-                    frames_out(i).FramedSig(j,:),Fs,"h",flag);
+                [Formants,~,~]=estimatePhonemeFormants(...
+                    FramedSig(j,:),Fs,"h",flag);
                 frames_out(i).F1 = [frames_out(i).F1 Formants(1)];
                 frames_out(i).F2 = [frames_out(i).F2 Formants(2)];
                 frames_out(i).F3 = [frames_out(i).F3 Formants(3)];
@@ -72,17 +79,15 @@ for i = 1:segments(2)
 
         warpedFreqs = vtln(freqs, "symmetric", alpha);
         %         freq2time -isreal(warpedFreqs(end))
-        P1 = warpedFreqs;                    
-        P1(2:end-1) = warpedFreqs(2:end-1)/2;    % Divide by 2 to correct for amplitude. 
-                                % it is opposite of line 17 in 'dofft'
+        P1 = warpedFreqs;
+        P1(2:end-1) = warpedFreqs(2:end-1)/2;    % Divide by 2 to correct for amplitude.
+        % it is opposite of line 17 in 'dofft'
         P2 = (length(frames_out(i).Signal_frame))*[P1;flipud(conj(P1(2:length(warpedFreqs))))]; % artificially - generate the mirror image of the signal.
-                                        % it is opposite of line 15 & 16 in
-                                        % 'dofft'.
         frames_out(i).warpedSignal = real(ifft(P2));                    % get the time domain signal using ifft command.
-% 
-%         conjWarpedFreqs = conj(warpedFreqs(end-1:-1:2));
-%         fullFreq = [warpedFreqs; conjWarpedFreqs];
-%          = real(ifft(fullFreq));
+        %
+        %         conjWarpedFreqs = conj(warpedFreqs(end-1:-1:2));
+        %         fullFreq = [warpedFreqs; conjWarpedFreqs];
+        %          = real(ifft(fullFreq));
         % remove echo
         %         [Rmm,lags] = xcorr(warpedSignal);
         %
@@ -105,10 +110,13 @@ for i = 1:segments(2)
         FramedSig = enframe(frames_out(i).warpedSignal ,round(Param.noverlap) );
 
         [n,~] =size(FramedSig);
-        [Frames_with_vocal_phonemeWarped,~,~] = ZCR_and_ENG(...
-            FramedSig,Fs,Param.WindowLength,Param.Overlap);
-        frames_out(i).F1Warped = [];frames_out(i).F2Warped = [];frames_out(i).F3Warped = [];%frames_out(i).F4 = [];
+        [Frames_with_vocal_phonemeWarped] = ZCR_and_ENG(FramedSig,Param,frames_out(i).segment_speaker);
+        frames_out(i).F1Warped = [];frames_out(i).F2Warped = [];frames_out(i).F3Warped = [];frames_out(i).LPC_matWarped = [];
         for j = 1:n
+            [~,LPc_dBWarped,frames_out(i).FWarped_LPC]=estimatePhonemeFormants(...
+                FramedSig(j,:),Fs,"h",flag);
+            frames_out(i).LPC_matWarped = [frames_out(i).LPC_matWarped LPc_dBWarped];
+
             if any(Frames_with_vocal_phonemeWarped== j)
                 % need to take out the unvoiced segments!!!!!!!!!!!!!!!
                 Formants=estimatePhonemeFormants(...

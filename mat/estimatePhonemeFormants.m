@@ -1,4 +1,4 @@
-function Formantss=estimatePhonemeFormants(PhonemeSig,Fs,phonemeName,flag)
+function [Formantss,LPc_dB,F] =estimatePhonemeFormants(PhonemeSig,Fs,phonemeName,flag)
 % % estimatePhonemeFormants takes the PhonemeSig and uses the Power spectral
 % % density by calculating the P coefficients using AR LPC model estimation of
 % % A general discrete-time model for speech production.
@@ -33,9 +33,11 @@ add_noise_to_filt=filter(1,aa,std_g*randn(M,1));
 std_gg1 = sqrt(gg1);
 % add the noise to the parametric periodogram
 [hh,omegg1]=freqz(std_gg1,aa1);
+LPc_dB = 20*log10(abs(hh));
+F = (Fs/(2*pi))*omegg1;
 if flag==1
     h1 = figure;
-    plot((Fs/(2*pi))*omegg1,20*log10(abs(hh)),'LineWidth',1.4,'Color','r',"DisplayName","LPC Spectral Estimation");
+    plot(F,LPc_dB,'LineWidth',1.4,'Color','r',"DisplayName","LPC Spectral Estimation");
     xlabel 'Frequency (Hz)' ;ylabel 'Magnitude [dB]'; hold on; grid on
     plot((Fs/(2*pi))*omeg,10*log10(Peri),'Color','b',"DisplayName","Periodogram")
     xlabel 'Frequency [Hz]' ; ylabel 'Gain [dB]'
@@ -47,17 +49,17 @@ rts = roots(aa1);
 % conjugate pairs. Retain only the roots with one sign for the imaginary
 % part and determine the angles corresponding to the roots.
 rts = rts(imag(rts)>=0);
-[~,Poles_idx]=maxk(abs(rts),3);
+% [~,Poles_idx]=maxk(abs(rts),3);
 angz = atan2(imag(rts),real(rts));
 % % Convert the angular frequencies in rad/sample represented by the angles to hertz and calculate the bandwidths of the formants.
 % % The bandwidths of the formants are represented by the distance of the prediction polynomial zeros from the unit circle.
 [frqs,indices] = sort(angz.*(Fs/(2*pi)));
 bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
-
-% Use the criterion that formant frequencies && bw(kk) >50  should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
+% 
+% Use the criterion that formant frequencies && bw(kk) >50 && bw(kk) <400  should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
 nn = 1;
 for kk = 1:length(frqs)
-    if (frqs(kk) > 90 && bw(kk) <400   && nn<=3)
+    if (frqs(kk) > 90  && nn<=3)
         Formantss(nn) = frqs(kk);
         nn = nn+1;
         if nn ==4
@@ -66,9 +68,10 @@ for kk = 1:length(frqs)
     end
 end
 % Formantss
-%
+% %
 % Formantss = angz(Poles_idx).*(Fs/(2*pi));
 % Formantss = sort(Formantss);
+
 if flag==1
     hold on
     title(sprintf('Spectral Estimation of the Phenome %s',phonemeName))
