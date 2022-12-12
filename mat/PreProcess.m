@@ -13,7 +13,7 @@ function [ProcessedSig,FramedSig]=PreProcess(Signal,Fs,alpha,WindowLength,Overla
 N = WindowLength*Fs; % [sec]*[sample/sec]=[sample]
 % Remove DC noise:
 Signal = Signal - mean(Signal);
-Signal = Signal/norm(Signal);
+% Signal = Signal/norm(Signal);
 % Pre-Emphasis filtering  
 ProcessedSig = filtfilt([1 -alpha],1,Signal);
 FramedSig = enframe(ProcessedSig ,hamming(N,"periodic"), ((Overlap)*N)/100 );

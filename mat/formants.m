@@ -10,14 +10,14 @@ function [Freq,outAR]= formants(Si, p, AR, Fs, Lags)
 % AR coefficients.
 % Fs - sampling frequency.
 % Lags - 2*Fs/Lags is the frequency accurecy. Lags must be power of 2.
-if (max(size(Si))>0),
+if (max(size(Si))>0)
     if p==0, error('Wrong p value'), end
     AR = aryule(Si, p);
-elseif (max(size(AR))==0),
+elseif (max(size(AR))==0)
     error('Wrong AR value')
 end
 [n,m] =size(AR);
-if (n>m),
+if (n>m)
     AR = AR';
 else
     n = m;

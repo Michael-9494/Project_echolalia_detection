@@ -13,9 +13,9 @@ for i = 1:length(EventStart)
         frames(i).event = ADOS_table.Var4(ADOS_table.Var1== EventStart(i));
         frames(i).start_time = ADOS_table.Var1(ADOS_table.Var1== EventStart(i));
 
-        [~,FramedSig]=PreProcess(frames(i).data,Fs,Param.alpha,Param.WindowLength,Param.Overlap);
-        frames(i).ZCR = calcZCR( FramedSig)';
-        frames(i).NRG = calcNRG( FramedSig)';
+%         [~,FramedSig]=PreProcess(frames(i).data,Fs,Param.alpha,Param.WindowLength,Param.Overlap);
+%         frames(i).ZCR = calcZCR( FramedSig)';
+%         frames(i).NRG = calcNRG( FramedSig)';
 %         ZCR_vec = [ZCR_vec frames(i).ZCR];
 %         NRG_vec = [NRG_vec frames(i).NRG];
         %         mzcr = mean(ZeroCrossingSignal);

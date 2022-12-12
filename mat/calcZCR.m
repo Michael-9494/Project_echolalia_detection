@@ -4,6 +4,7 @@ function ZeroCrossingSignal = calcZCR(framedSignal)
 % OUTPUT:
 % ZeroCrossingSignal – a column vector of the zero-crossing values of the signal
 [M,N]=size(framedSignal);
+% framedSignal = framedSignal-mean(framedSignal,2);
 
 framedSignal1 = framedSignal;
 framedSignal2 = cat(2,zeros(M,1),framedSignal(:,1:end-1));

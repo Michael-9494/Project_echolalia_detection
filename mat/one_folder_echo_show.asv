@@ -1,9 +1,9 @@
 clear;close all;clc
 Fs = 16000;
-flag =1;
+flag = 1;
 % Recs_VTLN_alpha_1_2_04122022_3_25092022
 % Recs_for_cry_scream1_2_30112022_25092022
-load("Recs_VTLN_alpha_1_2_12122022_25092022.mat")
+load("Recs_VTLN_alpha_1_2_11122022_4_25092022.mat")
 % soundsc(all(1).frames_out_child(112).Signal_frame,16000);
 
 % audiowrite("child.mp4",all(1).frames_out_child(112).Signal_frame,Fs,'BitRate',256)
@@ -12,7 +12,7 @@ F1_ch = [];F2_ch = [];F3_ch = [];
 F1_chWa = [];F2_chWa = [];F3_chWa = [];
 F_for_spect = linspace(0,Fs/2,161);% generates n points. The spacing between the points is (x2-x1)/(n-1).);
 % Recs_for_cry_scream_18092022_ECHO
-for file = 2:length(all)
+for file = 1:length(all)
     for w = 1:length(all(file).frames_out_Therapist)
         if isempty(all(file).frames_out_Therapist(w).Signal_frame)
             continue
@@ -27,8 +27,8 @@ for file = 2:length(all)
                     if isempty(all(file).frames_out_child(j).Signal_frame)
                         continue
                     else
-                        if (all(file).frames_out_Therapist(w).t(end)+10) >(all(file).frames_out_child(j).t(1)) &&...
-                                ((all(file).frames_out_Therapist(w).t(end)) <=(all(file).frames_out_child(j).t(1)))&&...
+                        if (all(file).frames_out_Therapist(w).t(end)+5) >(all(file).frames_out_child(j).t(1)) &&...
+                                ((all(file).frames_out_Therapist(w).t(end)) <=(all(file).frames_out_child(j).t(1)))  &&...
                                 strcmp( all(file).frames_out_child(j).segment_event{1} ,'Echolalia')
                             echo_idx = j;
                             break

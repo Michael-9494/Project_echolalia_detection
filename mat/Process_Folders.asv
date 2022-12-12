@@ -17,7 +17,7 @@ Recs_for_cry_scream1 ="_25092022";
 Param = struct();
 % start with feature extraction
 Param.alpha=15/16; % for pre emphasis
-Param.WindowLength=30*10^-3;  % 30 [mS] window
+Param.WindowLength=20*10^-3;  % 30 [mS] window
 Param.WindowLenSamp=(Param.WindowLength*Fs);
 Param.Overlap=50;             % 50% overlap
 % Param.fftLength = 2^nextpow2(Param.WindowLenSamp);
@@ -106,7 +106,7 @@ for file  = 3:length(Autism_data_in)
     
     all(file).F1_ther = [];all(file).F2_ther = [];all(file).F3_ther = [];%all(file).F4_ther = [];
     all(file).F1_ch = [];all(file).F2_ch = [];all(file).F3_ch = [];%F4_ch = [];
-    all(file).F1_chWa = [];all(file).F2_chWa = [];all(file).F3_chWa = [];
+    
     for w = 1:length(all(file).frames_out_Therapist)
         all(file).F1_ther = [all(file).F1_ther all(file).frames_out_Therapist(w).F1];
         all(file).F2_ther = [all(file).F2_ther all(file).frames_out_Therapist(w).F2];
@@ -141,7 +141,7 @@ end
 all = all(3:end);
 tic
 disp(['start saving'+ string(Recs_for_cry_scream1)])
-save("VTLN_alpha_1_2_12122022"+Recs_for_cry_scream1+".mat",'all', '-v7.3');%(i)
+save("Recs_VTLN_alpha_1_2_11122022_3"+Recs_for_cry_scream1+".mat",'all', '-v7.3');%(i)
 
 % show time elapsed
 hours = floor(toc/3600);

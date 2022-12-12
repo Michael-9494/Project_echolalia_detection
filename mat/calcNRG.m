@@ -7,6 +7,6 @@ function EnergySignal=calcNRG(framedSignal)
 % take the length of each frame
 [~,N]=size(framedSignal); 
 % sum( _ ,2) in order to sum each frame
-EnergySignal=10*log10((1/N)*(sum((framedSignal).^2,2)));
+EnergySignal=20*log10((1/N)*(sum((framedSignal).^2,2)));
 
 end

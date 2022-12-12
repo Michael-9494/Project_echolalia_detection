@@ -11,16 +11,17 @@ function [Frames_with_vocal_phoneme,Signal_Energy,ZeroCrossingSignal] = ZCR_and_
 %
 Signal_Energy=calcNRG(FramedSig);%calculate  of each frame
 ZeroCrossingSignal = calcZCR(FramedSig);
-mzcr = median(ZeroCrossingSignal);
-% % vzcr = var(ZeroCrossingSignal,1);
-mnrg = median(Signal_Energy);
-% % vnrg = var(Signal_Energy,1);
-Frames_with_vocal_phoneme=find(Signal_Energy>mnrg & ZeroCrossingSignal<mzcr);%
+mzcr = mean(ZeroCrossingSignal);
+vzcr = var(ZeroCrossingSignal,1);
+mnrg = mean(Signal_Energy);
+vnrg = var(Signal_Energy,1);
+% Frames_with_vocal_phoneme=find(Signal_Energy>mnrg & ZeroCrossingSignal<mzcr);%
 
 % % baseline energy level, Eb
 %
-% EbNRG = mnrg;%+(sqrt(vnrg));
-% EbZCR = mzcr;
+EbNRG = mnrg-(sqrt(vnrg)/2);%;
+EbZCR = mzcr+(sqrt(vzcr)/2);
+Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);%
 
 % Eb_T = Param.NRG_median_therapist;
 % Eb_C =  Param.NRG_median_Child;
