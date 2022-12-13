@@ -21,7 +21,7 @@ function [Formantss,LPc_dB,F] =estimatePhonemeFormants(PhonemeSig,Fs,phonemeName
 
 [Peri,omeg]=periodogram(PhonemeSig,[],'onesided');
 
-P =Fs/1000+2; %18;
+P =Fs/1000+4; %20;
 % g-variance of the prediction error
 % [aa,gg]=lpc(PhonemeSig,P);
 % std_g = sqrt(gg);
@@ -36,7 +36,7 @@ std_gg1 = sqrt(gg1);
 LPc_dB = 20*log10(abs(hh));
 F = (Fs/(2*pi))*omegg1;
 if flag==1
-    
+
     close all
     figure(100);subplot(2,1,1);
     plot(F,LPc_dB,'LineWidth',1.4,'Color','r',"DisplayName","LPC Spectral Estimation");
@@ -50,25 +50,28 @@ rts = roots(aa1);
 %Because the LPC coefficients are real-valued, the roots occur in complex
 % conjugate pairs. Retain only the roots with one sign for the imaginary
 % part and determine the angles corresponding to the roots.
-rts = rts(imag(rts)>=0);
+rts = rts(imag(rts)>0);
+rts = rts(real(rts)>0);
 [max_rts,Poles_idx]=maxk(rts,3,'ComparisonMethod','abs');
 angz = atan2(imag(rts),real(rts));
 bw1 = -1/2*(Fs/(2*pi))*log(abs(max_rts));
+Formantss1 = (angz(Poles_idx).*(Fs/(2*pi)))';
+Formantss1 = sort(Formantss1);
 
 % % Convert the angular frequencies in rad/sample represented by the angles to hertz and calculate the bandwidths of the formants.
 % % The bandwidths of the formants are represented by the distance of the prediction polynomial zeros from the unit circle.
 [frqs,indices] = sort(angz.*(Fs/(2*pi)));
 bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
 
-Formantss = [ NaN NaN NaN];
+Formantss = Formantss1;
 % Use the criterion that formant frequencies   && bw(kk) >10 && bw(kk) <400  should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
 nn = 1;
 for kk = 1:length(frqs)
     if (frqs(kk) > 90 && nn<=3)
-        if frqs(kk)<750 && (nn==1  )&& bw(kk) >10
+        if frqs(kk)<1050 && (nn==1  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
-        elseif frqs(kk)>750 && frqs(kk)<6000 && (nn==2  )&& bw(kk) >10
+        elseif frqs(kk)>1000 && frqs(kk)<6000 && (nn==2  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
         elseif frqs(kk)>3000 && frqs(kk)<8000 && ( nn==3 ) && bw(kk) >10
@@ -87,7 +90,7 @@ end
 %     Formantss = [Formantss NaN];
 % end
 
-% Formantss;
+% Formantss
 %
 % Formantss1 = angz(Poles_idx).*(Fs/(2*pi));%
 % Formantss1 = sort(Formantss1)';
@@ -112,7 +115,7 @@ if flag==1
 end
 
 if flag==1
-    
+
     figure(100);subplot(2,1,2)
     [z,pp,k]  = zplane(1,aa1); hold on; grid on
     findzeros = findobj(z,'Type','line'); findpoles = findobj(pp,'Type','line');

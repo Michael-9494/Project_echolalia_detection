@@ -32,14 +32,14 @@ Lxr=max(size(Xr1));
 Xr1=Xr1/Xr1(1); %normlizing the correlation
 % Set to zero all values until the first negativ value
 Xr1=Xr1.*(Xr1>0);
-f_max = 800;f_min = 80;
+f_max = 500;f_min = 75;
 
 M_min = round(nFs/f_max);
 M_max = round(nFs/f_min);
 %
 % Zcr=min(find(Xr1==0));
 if flag_sift
-    
+
     figure(199)
     plot(Xr1);ylim([0 1]);
     xlim([0 180]);
@@ -48,7 +48,7 @@ Xr1(1:M_min)=zeros(1,M_min);
 len = length(Xr1);
 Xr1(M_max:len)=zeros(1,round(len-M_max)+1);
 if flag_sift
-    
+
     figure(200)
     plot(Xr1);ylim([0 1]);xlim([0 180]);
 end
@@ -59,6 +59,9 @@ if max(size(M))>1
     f = NaN; Voice = 0;
 elseif Voice_prob>=Voice_thresh
     f = nFs/M; Voice = Voice_prob;
+    if  M==M_min  || M==M_min+1
+        f = NaN; Voice = Voice_prob;
+    end
 else
     f = NaN; Voice = Voice_prob;
 end

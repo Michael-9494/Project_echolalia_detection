@@ -13,7 +13,7 @@ function [ProcessedSig,FramedSig]=PreProcess(Signal,Fs,alpha,WindowLength,Overla
 N = WindowLength*Fs; % [sec]*[sample/sec]=[sample]
 % Remove DC noise:
 Signal = Signal - mean(Signal);
-Signal = Signal/norm(Signal);
+Signal = Signal/(max(abs(Signal)));
 % Pre-Emphasis filtering  
 ProcessedSig = filter([1 -alpha],1,Signal);%Signal;filtfilt
 % Apply the de-emphasis filter

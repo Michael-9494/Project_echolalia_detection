@@ -1,16 +1,21 @@
 clear;close all;clc
 flag_formants = 0;
-flag_sift = 1 ;
-flag_sound = 0;
-[Signal,Fs]=audioread("child.wav");
-% Signal = Signal(round(0.22*Fs):round(0.58*Fs)-1);
+flag_sift = 0 ;
+flag_sound = 1;
+[Signal,Fs]=audioread("igulim.wav");
+% Signal = Signal(round(0.4*Fs):round(1.2*Fs)-1);
+% soundsc(Signal_th,Fs);
+% Signal_ch = Signal(round(1.7*Fs):round(2.4*Fs)-1);
+% soundsc(Signal_ch,Fs);
+
+
 % r = 2;
 % Signal = decimate(signal,r);
 % Fs = Fs/r; % new sampling rate
 p = Fs/1000+2;
 Param = struct();
 % start with feature extraction
-Param.alpha=15/16; % for pre emphasis
+Param.alpha= 15/16; % for pre emphasis0.96
 Param.WindowLength=20*10^-3;  % 30 [mS] window
 Param.WindowLenSamp=(Param.WindowLength*Fs);
 Param.Overlap=50;             % 50% overlap
@@ -67,22 +72,18 @@ end
 PowerSpectrumWarped = SWarped.*conj(SWarped);
 % t_for_spectWarped = 0.22 +t_for_spectWarped ;
 
-NRG = calcNRG(FramedSig);
-ZCR = calcZCR(FramedSig);
+[vocal_frames,NRG,ZCR1] = ZCR_and_ENG(FramedSig);
+ZCRr = ZCR(FramedSig);
 figure
 subplot(2,1,1)
-plot(ZCR,"DisplayName","ZCR"),xlabel('frame number');
-ylabel('Zero-crossing rate'),title("Signal ZCR");yline(mean(ZCR)+(sqrt(var(ZCR))/2),'--m',"DisplayName","ZCR mean");
-subplot(2,1,2),plot(NRG,"--o","DisplayName","NRG");
+plot(ZCR1,"DisplayName","ZCR"),xlabel('frame number');
+ylabel('Zero-crossing rate'),title("Signal ZCR");yline(mean(ZCR1)+(sqrt(var(ZCR1))/2),'--m',"DisplayName","ZCR mean");
+subplot(2,1,2),plot(NRG,"--","DisplayName","NRG");
 title("Signal Energy"); xlabel 'segment index' ; ylabel 'Energy [dB]'
 grid on; hold on
 yline(mean(NRG)-(sqrt(var(NRG))/2),'--m',"DisplayName","NRG mean");%yline(th1,'b');yline(th2,'g')
 legend();
 hold on
-
-frame_low_nrg = find(NRG( (mean(NRG)-(sqrt(var(NRG))/2))  >NRG));
-frame_low_zcr = find(ZCR( (mean(ZCR)+(sqrt(var(ZCR))/2))  <ZCR));
-vocal_frames = find(NRG>(mean(NRG)-(sqrt(var(NRG))/2)) & ZCR<(mean(ZCR)+(sqrt(var(ZCR))/2)));
 
 [n,~] =size(FramedSig);
 % f0 = pitch(ProcessedSig,Fs,'WindowLength',Param.WindowLenSamp,...
@@ -93,7 +94,6 @@ F1 = [];F2 = [];F3 = [];%frames_out(i).F4 = [];
 Voice_thresh = 0.2;
 LPC_mat = [];
 F1Warped = [];F2Warped = [];F3Warped = [];%frames_out(i).F4 = [];
-Voice_threshWarped = 0.01;
 LPC_matWarped = [];
 FramedSigWarped = enframe(warpedSignal ,round(Param.noverlap) );
 
@@ -103,8 +103,8 @@ for j = 1:n
     LPC_mat = [LPC_mat LPc_dB];
     [pitchh(j),Voice(j)]=sift(FramedSig(j,:),Fs,Voice_thresh,flag_sift);
     
-    if any(j == vocal_frames)
-        % need to take out the unvoiced segments!!!!!!!!!!!!!!! Voice(j)>Voice_thresh 
+    if any(j == vocal_frames) || Voice(j)>Voice_thresh
+        % need to take out the unvoiced segments!!!!!!!!!!!!!!!  
         
         F1 = [F1 Formants(1)];
         F2 = [F2 Formants(2)];
@@ -122,8 +122,8 @@ for j = 1:n
     LPC_matWarped = [LPC_matWarped LPc_dBWarped];
     [pitchhWarped(j),VoiceWarped(j)]=sift(FramedSigWarped(j,:),Fs,Voice_thresh,flag_sift);
     
-    if any(j == vocal_frames) 
-        % need to take out the unvoiced segments!!!!!!!!!!!!!!! VoiceWarped(j)>Voice_thresh
+    if any(j == vocal_frames) || Voice(j)>Voice_thresh
+        % need to take out the unvoiced segments!!!!!!!!!!!!!!! VoiceWarped(j)>Voice_thresh 
         
         F1Warped = [F1Warped FormantsWarped(1)];
         F2Warped = [F2Warped FormantsWarped(2)];
@@ -166,7 +166,7 @@ plot(t_for_spect,F2,"r","DisplayName","F_2");
 hold on;
 plot(t_for_spect,F3,"k","DisplayName","F_3");
 hold on;
-plot(t_for_spect,pitchh,"g","DisplayName","F_0");
+plot(t_for_spect,pitchh,"m","DisplayName","F_0");
 % hold on;
 % plot(t_for_spect,f0,"m","DisplayName","F_0");
 xlabel('Time (s)');hold on;ylim([0 8000]);
@@ -184,7 +184,7 @@ plot(t_for_spect,F2,"r","DisplayName","F_2");
 hold on;
 plot(t_for_spect,F3,"k","DisplayName","F_3");
 hold on;
-plot(t_for_spect,pitchh,"g","DisplayName","F_0");
+plot(t_for_spect,pitchh,"m","DisplayName","F_0");
 % hold on;
 % plot(t_for_spect,f0,"m","DisplayName","F_0");
 hold on;ylabel('Frequency (Hz)');title("Therapist LPC");ylim([0 8000]);
@@ -216,7 +216,7 @@ plot(t_for_spectWarped,F2Warped,"r","DisplayName","F_2");
 hold on;
 plot(t_for_spectWarped,F3Warped,"k","DisplayName","F_3");
 hold on;
-plot(t_for_spectWarped,pitchhWarped,"g","DisplayName","F_0");
+plot(t_for_spectWarped,pitchhWarped,"m","DisplayName","F_0");
 % hold on;
 % plot(t_for_spectWarped,f0Warped,"m","DisplayName","F_0");
 xlabel('Time (s)');hold on
@@ -234,9 +234,30 @@ plot(t_for_spectWarped,F2Warped,"r","DisplayName","F_2");
 hold on;
 plot(t_for_spectWarped,F3Warped,"k","DisplayName","F_3");
 hold on;
-plot(t_for_spectWarped,pitchhWarped,"g","DisplayName","F_0");
+plot(t_for_spectWarped,pitchhWarped,"m","DisplayName","F_0");
 % hold on;
 % plot(t_for_spectWarped,f0Warped,"m","DisplayName","F_0");
 hold on;ylabel('Frequency (Hz)');title("Warped Child LPC");ylim([0 8000]);
 % legend();
 % soundsc(warpedSignal,Fs);
+
+figure(10)
+plot(Voice,"b","DisplayName","Voiced_{P%}");hold on
+plot(VoiceWarped,"r","DisplayName","Warped Voiced_{P%}")
+legend();ylim([0 1])
+
+% [temp]=dynamictimewarping(Signal_ch,Signal_th)
+a1 = Signal_ch;a2 = Signal;
+[d,i1,i2] = dtw(a1,a2);
+
+a1w = a1(i1);
+% soundsc(a1w,Fs)
+a2w = a2(i2);
+
+t = (0:numel(i1)-1)/Fs;
+% duration = t(end)
+figure
+plot(t,a1w,"DisplayName","Signal_{ch}")
+title(' Warped');hold on
+plot(t,a2w,"DisplayName","Signal_{th}");legend();
+xlabel('Time (seconds)')
