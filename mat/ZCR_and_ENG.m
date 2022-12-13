@@ -20,7 +20,7 @@ vnrg = var(Signal_Energy,1);
 % % baseline energy level, Eb
 %
 EbNRG = mnrg-(sqrt(vnrg)/2);%;
-EbZCR = mzcr+(sqrt(vzcr)/2);
+EbZCR = mzcr+(sqrt(vzcr)/2);%;
 Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);%
 
 % Eb_T = Param.NRG_median_therapist;

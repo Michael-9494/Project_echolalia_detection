@@ -21,7 +21,7 @@ function [Formantss,LPc_dB,F] =estimatePhonemeFormants(PhonemeSig,Fs,phonemeName
 
 [Peri,omeg]=periodogram(PhonemeSig,[],'onesided');
 
-P =Fs/1000+2; %12;
+P =Fs/1000+2; %18;
 % g-variance of the prediction error
 % [aa,gg]=lpc(PhonemeSig,P);
 % std_g = sqrt(gg);
@@ -32,7 +32,7 @@ P =Fs/1000+2; %12;
 [aa1,gg1]=aryule(PhonemeSig,P);
 std_gg1 = sqrt(gg1);
 % add the noise to the parametric periodogram
-[hh,omegg1]=freqz(std_gg1,aa1,512);
+[hh,omegg1]=freqz(std_gg1,aa1,Fs);
 LPc_dB = 20*log10(abs(hh));
 F = (Fs/(2*pi))*omegg1;
 if flag==1
@@ -65,10 +65,10 @@ Formantss = [ NaN NaN NaN];
 nn = 1;
 for kk = 1:length(frqs)
     if (frqs(kk) > 90 && nn<=3)
-        if frqs(kk)<2000 && (nn==1  )&& bw(kk) >10
+        if frqs(kk)<750 && (nn==1  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
-        elseif frqs(kk)>1500 && frqs(kk)<6000 && (nn==2  )&& bw(kk) >10
+        elseif frqs(kk)>750 && frqs(kk)<6000 && (nn==2  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
         elseif frqs(kk)>3000 && frqs(kk)<8000 && ( nn==3 ) && bw(kk) >10

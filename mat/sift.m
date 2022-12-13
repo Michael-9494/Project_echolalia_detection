@@ -32,7 +32,7 @@ Lxr=max(size(Xr1));
 Xr1=Xr1/Xr1(1); %normlizing the correlation
 % Set to zero all values until the first negativ value
 Xr1=Xr1.*(Xr1>0);
-f_max = 800;f_min = 100;
+f_max = 800;f_min = 80;
 
 M_min = round(nFs/f_max);
 M_max = round(nFs/f_min);
