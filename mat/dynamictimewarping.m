@@ -3,9 +3,9 @@ function [temp]=dynamictimewarping(S1,S2)
 % signal and S2 is in the database
 %after endpoint detection
 figure
-plot(S1,"DisplayName","speech child")
+plot(S1)
 hold on
-plot(S2,"DisplayName","speech therapist")
+plot(S2,'r')
 title('Query and the reference speech signal after endpoint detection')
 %Form the squared euclidean distance matrix
 DC=zeros(size(S1,2),size(S2,2));
@@ -68,9 +68,10 @@ POS1=cell2mat(POS');
 spos1=size(POS1,1);
 POS1=[POS1;ones(1,POS1(spos1,2))' (POS1(spos1,2):-1:1)'];
 for i=1:1:length(S2)
-    p=POS1(POS1(:,2)==i);
-    s=min(abs(POS1(p,2)-i));
-    temp(i)=S1(1,POS1(p(s)));
+    [p,q]=find(POS1(:,2)==i);
+    [r,s]=min(abs(POS1(p,2)-i));
+    temp(i)=S1(1,POS1(p(s)))
+    %     100 3 Feature Extraction of the Speech Signal
 end
 figure
 subplot(3,1,1)

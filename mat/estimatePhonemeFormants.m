@@ -32,7 +32,7 @@ P =Fs/1000+4; %20;
 [aa1,gg1]=aryule(PhonemeSig,P);
 std_gg1 = sqrt(gg1);
 % add the noise to the parametric periodogram
-[hh,omegg1]=freqz(std_gg1,aa1,Fs);
+[hh,omegg1]=freqz(std_gg1,aa1);
 LPc_dB = 20*log10(abs(hh));
 F = (Fs/(2*pi))*omegg1;
 if flag==1
@@ -51,7 +51,7 @@ rts = roots(aa1);
 % conjugate pairs. Retain only the roots with one sign for the imaginary
 % part and determine the angles corresponding to the roots.
 rts = rts(imag(rts)>0);
-rts = rts(real(rts)>0);
+% rts = rts(real(rts)>0);
 [max_rts,Poles_idx]=maxk(rts,3,'ComparisonMethod','abs');
 angz = atan2(imag(rts),real(rts));
 bw1 = -1/2*(Fs/(2*pi))*log(abs(max_rts));
@@ -63,18 +63,18 @@ Formantss1 = sort(Formantss1);
 [frqs,indices] = sort(angz.*(Fs/(2*pi)));
 bw = -1/2*(Fs/(2*pi))*log(abs(rts(indices)));
 
-Formantss = Formantss1;
+Formantss = [NaN NaN NaN];
 % Use the criterion that formant frequencies   && bw(kk) >10 && bw(kk) <400  should be greater than 90 Hz with bandwidths less than 400 Hz to determine the formants.
 nn = 1;
 for kk = 1:length(frqs)
     if (frqs(kk) > 90 && nn<=3)
-        if frqs(kk)<1050 && (nn==1  )&& bw(kk) >10
+        if frqs(kk)<1500 && (nn==1  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
         elseif frqs(kk)>1000 && frqs(kk)<6000 && (nn==2  )&& bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
-        elseif frqs(kk)>3000 && frqs(kk)<8000 && ( nn==3 ) && bw(kk) >10
+        elseif frqs(kk)>2000 && frqs(kk)<8000 && ( nn==3 ) && bw(kk) >10
             Formantss(nn) = frqs(kk);
             nn = nn+1;
         end
@@ -86,9 +86,9 @@ for kk = 1:length(frqs)
         end
     end
 end
-% if size(Formantss,2)~=3
-%     Formantss = [Formantss NaN];
-% end
+if size(Formantss,2)~=3
+    Formantss = Formantss1 ;
+end
 
 % Formantss
 %

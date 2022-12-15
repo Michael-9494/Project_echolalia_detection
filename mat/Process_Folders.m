@@ -16,8 +16,8 @@ Recs_for_cry_scream1 ="_25092022";
 
 Param = struct();
 % start with feature extraction
-Param.alpha=15/16; % for pre emphasis
-Param.WindowLength=30*10^-3;  % 30 [mS] window
+Param.alpha=0.63; % for pre emphasis15/16
+Param.WindowLength=20*10^-3;  % 30 [mS] window
 Param.WindowLenSamp=(Param.WindowLength*Fs);
 Param.Overlap=50;             % 50% overlap
 % Param.fftLength = 2^nextpow2(Param.WindowLenSamp);
@@ -53,6 +53,8 @@ for file  = 3:length(Autism_data_in)
     %read the data
     try
         [Signal,~]=audioread(ADOS_rec_path);
+%         Signal = decimate(Signal,2);
+%         Fs = 8000;
     catch ME
         fprintf('audioread without success: %s\n', ME.message);
         continue;  % Jump to next iteration of: for i
@@ -72,24 +74,24 @@ for file  = 3:length(Autism_data_in)
     StartChild = ADOS_mat( strcmp({'Child'}, ADOS_table.Var3) ,1);
     EndChild = ADOS_mat( strcmp({'Child'}, ADOS_table.Var3) ,2);
     
-    frames_Therapist = splitWavByEvent(ProcessedSig, StartTherapist,EndTherapist,Fs,ADOS_table,Param);
-    frames_Child = splitWavByEvent(ProcessedSig, StartChild,EndChild,Fs,ADOS_table,Param);
+    all(file).frames_Therapist = splitWavByEvent(ProcessedSig, StartTherapist,EndTherapist,Fs,ADOS_table,Param);
+    all(file).frames_Child = splitWavByEvent(ProcessedSig, StartChild,EndChild,Fs,ADOS_table,Param);
     ZCR_ther = [];NRG_ther = [];ZCR_ch = [];NRG_ch = [];
     
-    %     for w = 1:length(frames_Therapist)
-    %         ZCR_ther = [ZCR_ther frames_Therapist(w).ZCR];
-    %         NRG_ther = [NRG_ther frames_Therapist(w).NRG];
-    %     end
-    %     Param.ZCR_median_therapist = mean(ZCR_ther);
-    %     Param.NRG_median_therapist = mean(NRG_ther);
-    %
-    %     for w = 1:length(frames_Child)
-    %         ZCR_ch = [ZCR_ch frames_Child(w).ZCR];
-    %         NRG_ch = [NRG_ch frames_Child(w).NRG];
-    %     end
-    %     Param.ZCR_median_Child = mean(ZCR_ch);
-    %     Param.NRG_median_Child = mean(NRG_ch);
+    for w = 1:length(all(file).frames_Therapist)
+        ZCR_ther = [ZCR_ther (all(file).frames_Therapist(w).ZCR)'];
+        NRG_ther = [NRG_ther (all(file).frames_Therapist(w).NRG)'];
+    end
+    all(file).ZCR_median_therapist = median(ZCR_ther);
+    all(file).NRG_median_therapist = median(NRG_ther);
     
+    for w = 1:length(all(file).frames_Child)
+        ZCR_ch = [ZCR_ch (all(file).frames_Child(w).ZCR)'];
+        NRG_ch = [NRG_ch (all(file).frames_Child(w).NRG)'];
+    end
+    all(file).ZCR_median_Child = median(ZCR_ch);
+    all(file).NRG_median_Child = median(NRG_ch);
+    %
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % finished with reading child and therapist segments
@@ -98,37 +100,8 @@ for file  = 3:length(Autism_data_in)
     all(file).Child_name = myFolders{1};
     all(file).ADOS_date = myFolders{2};
     % [frames_out] = Process_frame(frames,Fs,Param,flag,VTLN,alpha)
-    VTLN =0;
-    alpha = 1.2;
-    all(file).frames_out_Therapist = Process_frame(frames_Therapist,Fs,Param,flag,VTLN,alpha);
-    VTLN = 1;
-    all(file).frames_out_child = Process_frame(frames_Child,Fs,Param,flag,VTLN,alpha);
-    
-    all(file).F1_ther = [];all(file).F2_ther = [];all(file).F3_ther = [];%all(file).F4_ther = [];
-    all(file).F1_ch = [];all(file).F2_ch = [];all(file).F3_ch = [];%F4_ch = [];
-    all(file).F1_chWa = [];all(file).F2_chWa = [];all(file).F3_chWa = [];
-    for w = 1:length(all(file).frames_out_Therapist)
-        all(file).F1_ther = [all(file).F1_ther all(file).frames_out_Therapist(w).F1];
-        all(file).F2_ther = [all(file).F2_ther all(file).frames_out_Therapist(w).F2];
-        all(file).F3_ther = [all(file).F3_ther all(file).frames_out_Therapist(w).F3];
-        %         F4_ther = [F4_ther all(file).frames_out_Therapist(w).F4];
-        
-    end
-    
-    
-    for w = 1:length(all(file).frames_out_child)
-        
-        all(file).F1_ch = [all(file).F1_ch all(file).frames_out_child(w).F1];
-        all(file).F2_ch = [all(file).F2_ch all(file).frames_out_child(w).F2];
-        all(file).F3_ch = [all(file).F3_ch all(file).frames_out_child(w).F3];
-        all(file).F1_chWa = [all(file).F1_chWa all(file).frames_out_child(w).F1Warped ];
-        all(file).F2_chWa = [all(file).F2_chWa all(file).frames_out_child(w).F2Warped ];
-        all(file).F3_chWa = [all(file).F3_chWa all(file).frames_out_child(w).F3Warped ];
-        %         all(file).F4_ch = [all(file).F4_ch all(file).frames_out_child(w).F4];
-    end
-    
     Process_time_one_recording = toc;
-    % show time elapsed
+    %                 % show time elapsed
     hours = floor(Process_time_one_recording/3600);
     minuts = floor(Process_time_one_recording/60) - hours * 60;
     seconds = floor(Process_time_one_recording - hours * 3600  - minuts * 60);
@@ -141,13 +114,14 @@ end
 all = all(3:end);
 tic
 disp(['start saving'+ string(Recs_for_cry_scream1)])
-save("VTLN_alpha_1_2_12122022"+Recs_for_cry_scream1+".mat",'all', '-v7.3');%(i)
+new_file = "15_12_2022"+Recs_for_cry_scream1+".mat";
+save(new_file,'all', '-v7.3');%(i)
 
 % show time elapsed
 hours = floor(toc/3600);
 minuts = floor(toc/60) - hours * 60;
 seconds = floor(toc - hours * 3600  - minuts * 60);
 disp(['time elapsed: ', num2str(hours), ':', num2str(minuts), ':', num2str(seconds)]);
-disp("Recs_for_cry_scream"+Recs_for_cry_scream1+".mat done and saved")
+disp(new_file+" done and saved")
 
 % end

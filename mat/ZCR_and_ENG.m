@@ -1,5 +1,5 @@
-function [Frames_with_vocal_phoneme,Signal_Energy,ZeroCrossingSignal] = ZCR_and_ENG(FramedSig,Param,segment_speaker)
-% FindWordIdx finds the start and end of speech using energy
+function [Frames_with_vocal_phoneme,Signal_Energy,ZeroCrossingSignal] = ZCR_and_ENG(FramedSig,Eb_T,Eb_C,ZC_T,ZC_C,segment_speaker)
+% ZCR_and_ENG finds the start and end of speech using energy
 % calculation. based of certain threshold
 % FramedSig – the framed speech signal after preprocessing.
 % Fs – sampling frequency
@@ -8,30 +8,31 @@ function [Frames_with_vocal_phoneme,Signal_Energy,ZeroCrossingSignal] = ZCR_and_
 
 % OUTPUT:
 % Idx – 2 integer vector: start and end indices of detected word.
-%
+% %
 Signal_Energy=calcNRG(FramedSig);%calculate  of each frame
 ZeroCrossingSignal = calcZCR(FramedSig);
-mzcr = mean(ZeroCrossingSignal);
-vzcr = var(ZeroCrossingSignal,1);
-mnrg = mean(Signal_Energy);
-vnrg = var(Signal_Energy,1);
-% Frames_with_vocal_phoneme=find(Signal_Energy>mnrg & ZeroCrossingSignal<mzcr);%
-
-% % baseline energy level, Eb
-%
-EbNRG = mnrg-(sqrt(vnrg)/2);%;
-EbZCR = mzcr+(sqrt(vzcr)/2);%;
-Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);%
-
+% Frames_with_vocal_phoneme = zeros([1 length(Signal_Energy)]);
+% mzcr = mean(ZeroCrossingSignal);
+% vzcr = var(ZeroCrossingSignal,1);
+% mnrg = mean(Signal_Energy);
+% vnrg = var(Signal_Energy,1);
+% % Frames_with_vocal_phoneme=find(Signal_Energy>mnrg & ZeroCrossingSignal<mzcr);%
+% 
+% % % baseline energy level, Eb
+% %
+% EbNRG = mnrg-(sqrt(vnrg)/2);%;
+% EbZCR = mzcr+(sqrt(vzcr)/2);%;
+% Frames_with_vocal_phoneme=find(Signal_Energy>=EbNRG & ZeroCrossingSignal<=EbZCR);%
+% % 
 % Eb_T = Param.NRG_median_therapist;
 % Eb_C =  Param.NRG_median_Child;
 % 
 % 
 % ZC_T =Param.ZCR_median_therapist;
 % ZC_C =  Param.ZCR_median_Child;
-% 
-% if strcmp(segment_speaker,"Therapist")
-%     Frames_with_vocal_phoneme=find(Signal_Energy>Eb_T & ZeroCrossingSignal<ZC_T);%
+
+if strcmp(segment_speaker,"Therapist")
+    Frames_with_vocal_phoneme=find(Signal_Energy>=Eb_T & ZeroCrossingSignal<=ZC_T);%
 % %     figure
 % %     subplot(2,1,1)
 % %     plot(ZeroCrossingSignal,"DisplayName","ZCR"),xlabel('frame number');
@@ -42,8 +43,8 @@ Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);%
 % %     yline(Eb_T,'--m',"DisplayName","NRG therapist");%yline(th1,'b');yline(th2,'g')
 % %     legend();
 % %     hold on
-% elseif strcmp(segment_speaker,"Child")
-%     Frames_with_vocal_phoneme=find(Signal_Energy>Eb_C & ZeroCrossingSignal<ZC_C);%
+elseif strcmp(segment_speaker,"Child")
+    Frames_with_vocal_phoneme=find(Signal_Energy>=Eb_C & ZeroCrossingSignal<=ZC_C);%
 % %         figure
 % %     subplot(2,1,1)
 % %     plot(ZeroCrossingSignal,"DisplayName","ZCR"),xlabel('frame number');
@@ -54,7 +55,7 @@ Frames_with_vocal_phoneme=find(Signal_Energy>EbNRG & ZeroCrossingSignal<EbZCR);%
 % %     grid on; hold on
 % %     yline(Eb_C,'--m',"DisplayName","NRG child");
 % %     legend();
-% end
+end
 % th2 = 10 * log10(1.1) + EbNRG;
 % Frames_without_vocal_phoneme=find(Signal_Energy<th2);
 %

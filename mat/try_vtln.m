@@ -120,6 +120,7 @@ m = m+1;   % m [1...M=numBands]
 
 lamba_m = (2*m-1)/(2*NumBands);
 
+warped_lamba_m = th_p_of_Lamda1(alpha(1),lamba_m);
 % DCT_mat = sqrt(2 / NumBands) * cos(pi * th_p_of_Lamda1(alpha(1),lamba_m).* k );
 % DCT_mat(1,:) = DCT_mat(1,:) / sqrt(2);
 DCT_mat = sqrt(2 / NumBands) * cos(pi *lamba_m.* k );
@@ -266,7 +267,7 @@ melSpectrogramdB_cepstrum = 10*log10(melSpectrogram);
 
 
 figure
-surf(t,center_Frequencies,melSpectrogramdB_cepstrum,"EdgeColor","none");
+surf(t,center_Frequencies,melSpectrogramdB_cepstrum',"EdgeColor","none");
 view([0,90])
 axis([t(1) t(end) center_Frequencies(1) center_Frequencies(end)])
 xlabel('Time (s)')

@@ -1,7 +1,8 @@
-function [frames_out] = Process_frame(frames,Fs,Param,flag,VTLN,alpha,Eb_T,Eb_C,ZC_T,ZC_C)
-%PROCESS_FRAME 
-
-
+function [frames_out] = Process_frame(frames,Fs,Param,flag,VTLN,alpha)
+%PROCESS_FRAME Summary of this function goes here
+%   Detailed explanation goes here
+% select_gpu("auto")
+coder.gpu.kernelfun
 %load the struct containing the speech frames
 segments = size(frames);
 frames_out = struct();
@@ -24,9 +25,9 @@ for i = 1:segments(2)
         frames_out(i).segment_speaker = frames(i).speakreLabel;
         frames_out(i).segment_event = frames(i).event;
         %         time2freq
-        P2 = fft(frames(i).data);%/length(frames(i).data) perform fft > it gives double-spectrum and distribute energy
+        P2 = fft(frames(i).data)/length(frames(i).data);% perform fft > it gives double-spectrum and distribute energy
         freqs = P2(1:floor(length(frames(i).data)/2)+1);              % get one-side spectrum
-%         freqs(2:end-1) = 2*freqs(2:end-1);    % Multiple by 2 as a correction for amplitude
+        freqs(2:end-1) = 2*freqs(2:end-1);    % Multiple by 2 as a correction for amplitude
         
         
         T = 1/Fs;             % Sampling period
@@ -48,11 +49,10 @@ for i = 1:segments(2)
         frames_out(i).t_for_spect = frames_out(i).t_for_spect + frames(i).start_time;
         
         [n,~] =size(FramedSig);%(FramedSig,Eb_T,Eb_C,ZC_T,ZC_C,segment_speaker)
-
-        [Frames_with_vocal_phoneme] = ZCR_and_ENG(FramedSig,Eb_T,Eb_C,ZC_T,ZC_C,frames_out(i).segment_speaker);
-%         if isempty(Frames_with_vocal_phoneme)
-%             continue
-%         end
+        [Frames_with_vocal_phoneme] = ZCR_and_ENG(FramedSig,,frames_out(i).segment_speaker);
+        if isempty(Frames_with_vocal_phoneme)
+            continue
+        end
         
         frames_out(i).F1 = [];frames_out(i).F2 = [];frames_out(i).F3 = [];%frames_out(i).F4 = [];
         Voice_thresh = 0.4;
@@ -65,8 +65,8 @@ for i = 1:segments(2)
             
             [frames_out(i).pitch(j),frames_out(i).Voice(j)]=sift(FramedSig(j,:),Fs,Voice_thresh,flag);
             
-            if  any(j == Frames_with_vocal_phoneme) || frames_out(i).Voice(j)>=Voice_thresh
-                % need to take out the unvoiced segments!!!!!!!!!!!!!!!frames_out(i).Voice(j)>Voice_thresh
+            if   frames_out(i).Voice(j)>=Voice_thresh
+                %any(j == Frames_with_vocal_phoneme) || need to take out the unvoiced segments!!!!!!!!!!!!!!!frames_out(i).Voice(j)>Voice_thresh
                 
                 frames_out(i).F1 = [frames_out(i).F1 Formants(1)];
                 frames_out(i).F2 = [frames_out(i).F2 Formants(2)];
@@ -90,9 +90,9 @@ for i = 1:segments(2)
         warpedFreqs = vtln(freqs, "symmetric", alpha);
         %         freq2time -isreal(warpedFreqs(end))
         P1 = warpedFreqs;
-%         P1(2:end-1) = warpedFreqs(2:end-1)/2;    % Divide by 2 to correct for amplitude.
+        P1(2:end-1) = warpedFreqs(2:end-1)/2;    % Divide by 2 to correct for amplitude.
         % it is opposite of line 17 in 'dofft'
-        P2 = [P1;flipud(conj(P1(2:length(warpedFreqs))))]; %(length(frames(i).data))* artificially - generate the mirror image of the signal.
+        P2 = (length(frames(i).data))*[P1;flipud(conj(P1(2:length(warpedFreqs))))]; % artificially - generate the mirror image of the signal.
         frames_out(i).warpedSignal = real(ifft(P2));                    % get the time domain signal using ifft command.
         %
         %         conjWarpedFreqs = conj(warpedFreqs(end-1:-1:2));
@@ -134,8 +134,8 @@ for i = 1:segments(2)
             %                 FramedSig(j,:),Fs,"h",flag);
             
             [frames_out(i).pitchWarped(j),frames_out(i).VoiceWarped(j)]=sift(FramedSig(j,:),Fs,Voice_thresh,flag);
-            if any(j == Frames_with_vocal_phoneme)  || frames_out(i).VoiceWarped(j)>=Voice_thresh
-                %  need to take out the unvoiced segments!!!!!!!!!!!!!!!frames_out(i).VoiceWarped(j)>Voice_thresh
+            if  frames_out(i).VoiceWarped(j)>=Voice_thresh
+                % any(j == Frames_with_vocal_phoneme)  || need to take out the unvoiced segments!!!!!!!!!!!!!!!frames_out(i).VoiceWarped(j)>Voice_thresh
                 %                 Formants=estimatePhonemeFormants(...
                 %                     FramedSig(j,:),Fs,"h",flag);
                 frames_out(i).F1Warped = [frames_out(i).F1Warped Formants(1)];
