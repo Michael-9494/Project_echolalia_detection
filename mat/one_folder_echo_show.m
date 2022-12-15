@@ -194,7 +194,7 @@ for file = 1:length(all)
                     hold on;
                     plot(frames_out_child(echo_idx).t_for_spect,frames_out_child(echo_idx).F3Warped,"k","DisplayName","F_3");
                     hold on;ylabel('Frequency (Hz)');title("child Warped spectrum LPC")
-%                     c = jet(10);
+%                     c = hot(50);
 %                     colormap(c);
                     
                     
