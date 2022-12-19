@@ -7,17 +7,14 @@ Created on Thu Jul 28 18:25:50 2022
 import math
 import numpy as np
 import pandas as pd
-import os
-import wave
+
 from scipy.io import wavfile
-import scipy.io
+
 import matplotlib.pyplot as plt
 import matplotlib
-import pyaudio
-import wave
+
 import os
-import IPython.display as ipd
-import librosa
+
 import librosa.display
 import sys
 sys.path.append(r'C:\Users\97254\Documents\GitHub\Project-speech\py\py-part')

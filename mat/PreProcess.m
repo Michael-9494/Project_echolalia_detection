@@ -16,6 +16,7 @@ Signal = Signal - mean(Signal);
 Signal = Signal/max(abs(Signal));
 % Pre-Emphasis filtering  
 ProcessedSig = filtfilt([1 -alpha],1,Signal);
+
 FramedSig = enframe(ProcessedSig ,hamming(N,"periodic"), ((Overlap)*N)/100 );
 
 end
