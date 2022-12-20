@@ -8,25 +8,20 @@ import math
 import numpy as np
 import pandas as pd
 import os
-import wave
 from scipy.io import wavfile
 import scipy.io
 import matplotlib.pyplot as plt
 import matplotlib
-import pyaudio
-import wave
-import os
-import IPython.display as ipd
 import librosa
 import librosa.display
 import sys
-sys.path.append(r'C:\Users\97254\Documents\GitHub\praat_formants_python')
-import praat_formants_python as pfp
-sys.path.append(r"C:\Users\97254\Praat")
-
+# sys.path.append(r'C:\Users\97254\Documents\GitHub\praat_formants_python')
+import parselmouth 
+from parselmouth import praat
 import Preprocess
 # %matplotlib inline
-
+import statistics
+from parselmouth.praat import call
 
 if __name__ == '__main__':
     
@@ -36,24 +31,30 @@ if __name__ == '__main__':
     Database = os.listdir(r'Y:\Database\Recordings_for_Segmentor\Michael\Recs_for_cry_scream')
     current_Database = Database[7]
     current_path = r'Y:\Database\Recordings_for_Segmentor\Michael\Recs_for_cry_scream' + "\\" + current_Database
-    current_folder = os.listdir(current_path)
+    child_ID_and_date = os.listdir(current_path)
+    ID = child_ID_and_date[4]
+    ID =ID.split("_")
+    voiceID = ID[0]
     
-    one_child_path = current_path+ "\\" +current_folder[1]
-    path_excel = os.path.join('C',one_child_path+ "\\"+current_folder[1] +"_new.xlsx")
-    path_filename_wav = os.path.join('C',one_child_path+ "\\"+current_folder[1]+".wav")
+    one_child_path = current_path+ "\\" +child_ID_and_date[4]
+    path_excel = os.path.join('C',one_child_path+ "\\"+child_ID_and_date[4] +"_new.xlsx")
+    path_filename_wav = os.path.join('C',one_child_path+ "\\"+child_ID_and_date[4]+".wav")
     
     df = pd.read_excel(path_excel, sheet_name='Sheet1', index_col=None, header=None)
     print(df.info())
     # Pass a list of column names
-    start_column = df[0]
-    end_column = df[1]
-    speaker_column = df[2]
-    event_column = df[3]
 
-    # print("start_column\n", start_column)
-    # print("speaker_column\n", speaker_column)
-    # print("\n\n")
-
+    EventStart = df[ (df[2] == "Therapist") |  (df[2] == "Therapist2") |  (df[2] == "Child") ][:][0]
+    EventStart = EventStart.reset_index(drop=True)
+    EventEnd = df[ (df[2] == "Therapist") |  (df[2] == "Therapist2") |  (df[2] == "Child") ][:][1]
+    EventEnd = EventEnd.reset_index(drop=True)
+    EventSpeaker = df[ (df[2] == "Therapist") |  (df[2] == "Therapist2") |  (df[2] == "Child") ][:][2]
+    EventSpeaker = EventSpeaker.reset_index(drop=True)
+    Event = df[ (df[2] == "Therapist") |  (df[2] == "Therapist2") |  (df[2] == "Child") ][:][3]
+    Event = Event.reset_index(drop=True)
+    
+     
+    
     EcholaliaEventTherapistStart = df[((df[3] == "Echolalia") & (df[2] == "Therapist")) | ((df[3] == "Echolalia") & (df[2] == "Therapist2")) ][:][0]
     # print("\n\nEcholalic Therapist events start\n\n\n", EcholaliaEventTherapistStart)
 
@@ -61,68 +62,161 @@ if __name__ == '__main__':
     # print("\n\nEcholalic Therapist events end\n\n\n", EcholaliaEventTherapistEnd)
 
     EcholaliaEventChildStart = df[(df[3] == "Echolalia") & (df[2] == "Child")][:][0]
+    EcholaliaEventChildStart = EcholaliaEventChildStart.reset_index(drop=True)
+    EcholaliaEventChildEnd = df[(df[3] == "Echolalia") & (df[2] == "Child")][:][1]
+    EcholaliaEventChildEnd = EcholaliaEventChildEnd.reset_index(drop=True)
+    SpeakerChild = df[(df[3] == "Echolalia") & (df[2] == "Child")][:][2]
+    SpeakerChild =SpeakerChild.reset_index(drop=True)
+    EventChild = df[(df[3] == "Echolalia") & (df[2] == "Child")][:][3]
+    EventChild = EventChild.reset_index(drop=True)
     # print("\n\nEcholalic Child events start\n\n\n", EcholaliaEventChildStart)
 
-    EcholaliaEventChildEnd = df[(df[3] == "Echolalia") & (df[2] == "Child")][:][1]
+    
     # print("\n\nEcholalic Child events end\n\n\n", EcholaliaEventChildEnd)
 
+
+    
     # read the wav file
-    Fs, ADOS_recording = wavfile.read(path_filename_wav)
-    length = ADOS_recording.shape[0] / Fs
-    # print(f"\n\nlength = {length}[sec]")
+    sound = parselmouth.Sound(path_filename_wav) 
+    # If desired, pre-emphasize the sound fragment before calculating the spectrogram 
+    pre_emphasized_sound = sound.copy() 
+    pre_emphasized_sound.pre_emphasize() 
+    
+    
+    d = {'Start_time': EcholaliaEventChildStart,'End_time': EcholaliaEventChildEnd,'Speaker': SpeakerChild,'Event':EventChild}
+    d.keys()
+    
+    out_dictionery1 = Preprocess.process_frames(d,sound)
+ 
+    
+    for i in range (1,len(out_dictionery1['time_f'])):
+    
+        plt.figure()
+        plt.plot(out_dictionery1['time_f'][i], out_dictionery1['F1'][i], 'o', markersize=3, label=" F-1")
+        plt.plot(out_dictionery1['time_f'][i], out_dictionery1['F2'][i], 'o', markersize=3, label=" F-2")
+        plt.plot(out_dictionery1['time_f'][i], out_dictionery1['F3'][i], 'o', markersize=3, label=" F-3")
+        plt.legend()
+        
+        plt.figure()
+        Preprocess.draw_spectrogram(out_dictionery1['spectrogram'][i])
+        plt.twinx() 
+        Preprocess.draw_intensity(out_dictionery1['intensity'][i]) 
+        # plt.xlim([snd.xmin, snd.xmax])
+        plt.show()
+    
+            
+        plt.figure() 
+        Preprocess.draw_pitch(out_dictionery1['pitch'][i]) 
+        # plt.xlim([snd_part.xmin, snd_part.xmax]) 
+        plt.show()
+        i+=1
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+ 
+    
+    
+    
+    
+    # duration1 = call(sound, "Get total duration") # duration
+
+    # (f1_list, f2_list, f3_list , f4_list,f1_mean,f2_mean,f3_mean,f4_mean,
+    #  f1_median,f2_median,f3_median,f4_median,time_f)= Preprocess.measureFormants(
+    #      sound, path_filename_wav, f0min,f0max)
+    
+    # (duration, meanF0, stdevF0, hnr, localJitter, localabsoluteJitter,
+    #      rapJitter, ppq5Jitter, ddpJitter, localShimmer,
+    #      localdbShimmer, apq3Shimmer) = Preprocess.measurePitch(
+    #          path_filename_wav, f0min, f0max, "Hertz")
+             
+      # Add the data to Pandas
+    # df = pd.DataFrame(np.column_stack([file_list, duration_list, mean_F0_list, sd_F0_list, hnr_list, 
+    #                                    localJitter_list, localabsoluteJitter_list, rapJitter_list, 
+    #                                    ppq5Jitter_list, ddpJitter_list, localShimmer_list, 
+    #                                    localdbShimmer_list, apq3Shimmer_list, aqpq5Shimmer_list, 
+    #                                    apq11Shimmer_list, ddaShimmer_list, f1_mean_list, 
+    #                                    f2_mean_list, f3_mean_list, f4_mean_list, 
+    #                                    f1_median_list, f2_median_list, f3_median_list, 
+    #                                    f4_median_list]),
+    #                                    columns=['voiceID', 'duration', 'meanF0Hz', 'stdevF0Hz', 'HNR', 
+    #                                             'localJitter', 'localabsoluteJitter', 'rapJitter', 
+    #                                             'ppq5Jitter', 'ddpJitter', 'localShimmer', 
+    #                                             'localdbShimmer', 'apq3Shimmer', 'apq5Shimmer', 
+    #                                             'apq11Shimmer', 'ddaShimmer', 'f1_mean', 'f2_mean', 
+    #                                             'f3_mean', 'f4_mean', 'f1_median', 
+    #                                             'f2_median', 'f3_median', 'f4_median'])
+    
+    # pcaData = Preprocess.runPCA(df) # Run jitter and shimmer PCA
+    # df = pd.concat([df, pcaData], axis=1) # Add PCA data
+    # # reload the data so it's all numbers
+    # df.to_csv("processed_results.csv", index=False)
+    # df = pd.read_csv('processed_results.csv', header=0)
+    # df.sort_values('voiceID').head(20)  
+        
+    
+ #    Fs, ADOS_recording = wavfile.read(path_filename_wav)
+ #    length = ADOS_recording.shape[0] / Fs
+ #    # print(f"\n\nlength = {length}[sec]")
 
      
     
-    print("therapist first echolalia event \n\n", EcholaliaEventTherapistStart.values[0])
-    short_len_therapist = int(
-        (EcholaliaEventTherapistEnd.values[0] - EcholaliaEventTherapistStart.values[0]) * Fs + 1)
-    time_vector_therapist_echolalic_event = np.linspace(EcholaliaEventTherapistStart.values[0],
-                                        EcholaliaEventTherapistEnd.values[0], short_len_therapist)
+ #    print("therapist first echolalia event \n\n", EcholaliaEventTherapistStart.values[0])
+ #    short_len_therapist = int(
+ #        (EcholaliaEventTherapistEnd.values[0] - EcholaliaEventTherapistStart.values[0]) * Fs + 1)
+ #    time_vector_therapist_echolalic_event = np.linspace(EcholaliaEventTherapistStart.values[0],
+ #                                        EcholaliaEventTherapistEnd.values[0], short_len_therapist)
 
-    event_echolalia_len_child = int((EcholaliaEventChildEnd.values[0] - 
-                                      EcholaliaEventChildStart.values[0]) * Fs + 1)
-    time_vector_child_echolalic_event = np.linspace(EcholaliaEventChildStart.values[0],
-                        EcholaliaEventChildEnd.values[0], event_echolalia_len_child)
+ #    event_echolalia_len_child = int((EcholaliaEventChildEnd.values[0] - 
+ #                                      EcholaliaEventChildStart.values[0]) * Fs + 1)
+ #    time_vector_child_echolalic_event = np.linspace(EcholaliaEventChildStart.values[0],
+ #                        EcholaliaEventChildEnd.values[0], event_echolalia_len_child)
     
         
-    alpha=0.63;
-    WindowLength_time=20*10**-3;  # 30 [mS] window
-    Overlap=50;             #  %frame rate of 15 ms
-    N =int( WindowLength_time*Fs); # [sec]*[sample/sec]=[sample]
-    Hopsize =int( ((Overlap)*N)//100 )
+ #    alpha=0.63;
+ #    WindowLength_time=20*10**-3;  # 30 [mS] window
+ #    Overlap=50;             #  %frame rate of 15 ms
+ #    N =int( WindowLength_time*Fs); # [sec]*[sample/sec]=[sample]
+ #    Hopsize =int( ((Overlap)*N)//100 )
     
     
-    Window = np.hamming(N)
-    ProcessedSig_ADOS,FramedSig = Preprocess.first_PreProcess(ADOS_recording,Fs,alpha,WindowLength_time,Overlap)
+ #    Window = np.hamming(N)
+ #    ProcessedSig_ADOS,FramedSig = Preprocess.first_PreProcess(ADOS_recording,Fs,alpha,WindowLength_time,Overlap)
     
-    therapist_part_audio = ProcessedSig_ADOS[int(EcholaliaEventTherapistStart.values[0] * Fs):
-                    int(EcholaliaEventTherapistEnd.values[0] * Fs)+1]
+ #    therapist_part_audio = ProcessedSig_ADOS[int(EcholaliaEventTherapistStart.values[0] * Fs):
+ #                    int(EcholaliaEventTherapistEnd.values[0] * Fs)+1]
         
-    child_part_audio =ProcessedSig_ADOS[int(EcholaliaEventChildStart.values[0] * Fs):int(
-            EcholaliaEventChildEnd.values[0] * Fs)+1]
+ #    child_part_audio =ProcessedSig_ADOS[int(EcholaliaEventChildStart.values[0] * Fs):int(
+ #            EcholaliaEventChildEnd.values[0] * Fs)+1]
     
     
     
-    plt.subplot(1, 2, 1)
-    # librosa.display.waveplot(therapist_part_audio, alpha=0.5, sr= Fs, x_axis="time",
-    #                            offset= time_vector_therapist_echolalic_event[0])
-    plt.plot(time_vector_therapist_echolalic_event, therapist_part_audio, label=" speech-therapist")
-    plt.legend()
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude")
-    plt.subplot(1, 2, 2)
-    plt.plot(time_vector_child_echolalic_event, child_part_audio, label=" speech-child")
-    plt.tight_layout()
-    plt.legend()
-    plt.xlabel("Time [s]")
-    plt.ylabel("Amplitude")
+ #    plt.subplot(1, 2, 1)
+ #    # librosa.display.waveplot(therapist_part_audio, alpha=0.5, sr= Fs, x_axis="time",
+ #    #                            offset= time_vector_therapist_echolalic_event[0])
+ #    plt.plot(time_vector_therapist_echolalic_event, therapist_part_audio, label=" speech-therapist")
+ #    plt.legend()
+ #    plt.xlabel("Time [s]")
+ #    plt.ylabel("Amplitude")
+ #    plt.subplot(1, 2, 2)
+ #    plt.plot(time_vector_child_echolalic_event, child_part_audio, label=" speech-child")
+ #    plt.tight_layout()
+ #    plt.legend()
+ #    plt.xlabel("Time [s]")
+ #    plt.ylabel("Amplitude")
     
-    path = path_filename_wav
-    newPath = path.replace(os.sep, '/')
-    os.getcwd()
-    pfp.formants_at_interval(newPath, EcholaliaEventChildStart.values[1] )
+ #    path = path_filename_wav
+ #    newPath = path.replace(os.sep, '/')
+ #    os.getcwd()
+ #    # pfp.formants_at_interval(newPath, EcholaliaEventChildStart.values[1] )
     
- # "C:\Users\97254\Desktop\Praat.exe", EcholaliaEventChildEnd.values[1]
+ # # "C:\Users\97254\Desktop\Praat.exe", EcholaliaEventChildEnd.values[1]
 
     
     # X = Preprocess.stft(therapist_part_audio, Window, int(Hopsize), only_positive_frequencies=True)
