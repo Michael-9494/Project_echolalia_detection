@@ -8,13 +8,13 @@ import numpy as np
 from matplotlib import patches
 from numba import jit
 import scipy
-import librosa
 import matplotlib.pyplot as plt
 import glob
 import pandas as pd
 import parselmouth 
 import statistics
 
+from matplotlib.colors import LinearSegmentedColormap
 
 from parselmouth.praat import call
 from scipy.stats.mstats import zscore
@@ -253,7 +253,7 @@ def measurePitch(voiceID, f0min, f0max, unit):
     apq11Shimmer =  call([sound, pointProcess], "Get shimmer (apq11)", 0, 0, 0.0001, 0.02, 1.3, 1.6)
     ddaShimmer = call([sound, pointProcess], "Get shimmer (dda)", 0, 0, 0.0001, 0.02, 1.3, 1.6)
     
-    return duration, meanF0, stdevF0, hnr, localJitter, localabsoluteJitter, rapJitter, ppq5Jitter, ddpJitter, localShimmer, localdbShimmer, apq3Shimmer
+    return duration,meanF0,stdevF0,hnr,localJitter,localabsoluteJitter,rapJitter,ppq5Jitter,ddpJitter,localShimmer,localdbShimmer,apq3Shimmer,aqpq5Shimmer,apq11Shimmer,ddaShimmer
 
 # This function runs a 2-factor Principle Components Analysis (PCA) on Jitter and Shimmer
 def runPCA(df):
@@ -270,10 +270,10 @@ def runPCA(df):
     return principalDf
 
 
-def draw_spectrogram(spectrogram, dynamic_range=50): 
+def draw_spectrogram(spectrogram, dynamic_range=70): 
     X, Y = spectrogram.x_grid(),spectrogram.y_grid() 
     sg_db = 10 * np.log10(spectrogram.values) 
-    plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max()- dynamic_range)
+    plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max()- dynamic_range, cmap='afmhot')
     plt.ylim([spectrogram.ymin, spectrogram.ymax]) 
     plt.xlabel("time [s]")
     plt.ylabel("frequency [Hz]")
@@ -304,7 +304,7 @@ def process_frames(d,sound):
                       'F1_median':{},'F2_median':{},'F3_median':{},
                       'time_f':{},'Event':{},'Speaker':{},
                       'speech_data_time':{},'speech_data':{},
-                      'pitch':{},'spectrogram':{},'pitch_obj':{}}
+                      'pitch':{},'spectrogram':{},'pitch_obj':{},'sound_obj':{}}
     # ,'f':{},'t':{}
     for i in range(0,len(d['Event'])):
         snd_part = sound.extract_part(from_time=d['Start_time'][i],
@@ -312,13 +312,75 @@ def process_frames(d,sound):
     
         # snd_part = sound.extract_part(from_time=d['Start_time'][0],to_time =d['End_time'][0], preserve_times=True )
         out_dictionery['speech_data_time'][i]=snd_part.xs()
-        out_dictionery['speech_data'][i]=snd_part.values.T
-        pitch = snd_part.to_pitch()
+        out_dictionery['speech_data'][i]=snd_part.values.T  
+        out_dictionery['sound_obj'][i]=snd_part
+        # 0:    time_step(s) (standard value: 0.0)
+        # the measurement interval (frame duration), in seconds.
+        # If you supply 0, Praat will use a time step of 0.75 / (pitch fide),
+        # e.g. 0.01 seconds if the pitch floor is 75 Ha, in this example,
+        # Praat computes 100 pitch values per second.
+        
+        # f0min pitch_floor(Hz) (standard value: 75 Hz)
+        # candidates below this frequency will not be recuted.
+        # This parameter determines the effective length of the analysis window: it will
+        # be 3 longest periods long, ie., if the pitch floor is 75 Hz, 
+        # the window will be effectively 3/75 = 0.04 seconds long.
+        # Note that if you set the time step to zero, the analysis windows
+        # for consecutive measurements will overlap appreciably: Praat will always
+        # compute 4 pitch values within one window length, i.e., the degree of oversampling is 4.
+        
+        
+        # 15 
+        
+        # 'no'       very_accurate
+        
+        #  0.03  silence_threshold  (standard value: 0.03)
+        # frames that do not contain amplitudes above this threshold 
+        # (relative to the global maximum amplitude), are probably silent.    
+        
+        
+        #  0.45  Voicing_th (standard value: 0.45)
+        # the strength of the unvoiced candidate,
+        # relative to the maximum possible autocorrelation.
+        # If the amount of periodic energy in a frame is more than this 
+        # of the total energy (the remainder being noise), then Praat will prefer
+        # to regard this frame as voiced; otherwise as unvoiced. To increase the
+        # number of unvoiced decisions, increase the voicing threshold.    
+        
+        #  0.01   Octave_cost(standard value: 0.01 per octave)
+        # degree of favouring of high-frequency candidates, relative to the maximum possible autocorrelation.
+        # This is necessary because even (or: especially) in the case of a 
+        # perfectly periodic signal, all undertones of Fo are equally strong
+        # candidates as Fo itself. To more strongly favour recruitment of high-frequency 
+        # candidates, increase this value
+     
+        #  0.35   octave-Jump cost    (standard value: 0.35)
+        # degree of disfavouring of pitch changes, relative to the maximum 
+        # possible autocorrelation. To decrease the number of large frequency jumps,
+        # increase this value. In contrast with what is described in the article,
+        # this value will be corrected for the time step:
+        # multiply by 0.01 s / TimeStep to get the value in the way it is 
+        # used in the formulas in the article.       
+        
+        
+        #  0.14  Voiced/Un-Voiced cost (standard value: 0.14)
+        # degree of disfavouring of voiced/unvoiced transitions, relative to 
+        # the maximum possible autocorrelation. To decrease the number of
+        # voiced/unvoiced transitions, increase this value. In contrast with what
+        # is described in the article, this value will be corrected for the time
+        # step: multiply by 0.01s / TimeStep to get the value in the way it is
+        # used in the formulas in the article.
+        
+        #  f0max
+        pitch = call(snd_part, "To Pitch (cc)", 0, 60, 15, 'no', 0.03, 0.35, 0.01, 0.35, 0.14, 1600)
+        # pitch = snd_part.to_pitch()
         pitch_values = pitch.selected_array['frequency'] 
         pitch_values[pitch_values==0] = np.nan
         out_dictionery['pitch'][i] = pitch_values
-        out_dictionery['pitch'][i] = pitch
-        spectrogram = snd_part.to_spectrogram(window_length=0.02,maximum_frequency=8000)
+        out_dictionery['pitch_obj'][i] = pitch
+        # pre_emphasized_sound = snd_part.copy() 
+        # pre_emphasized_sound.pre_emphasize() 
+        spectrogram = snd_part.to_spectrogram(window_length=0.01,maximum_frequency=8000)
         # t, f = spectrogram.x_grid(),spectrogram.y_grid()
         # out_dictionery['f'][i] = f
         # out_dictionery['t'][i] = t
@@ -328,12 +390,12 @@ def process_frames(d,sound):
         out_dictionery['Speaker'][i]=d['Speaker'][i]
         intensity = snd_part.to_intensity()
         out_dictionery['intensity'][i]=intensity
-        f0min=75
-        f0max=800
+        f0min=60
+        f0max=1600
         pointProcess = call(snd_part, "To PointProcess (periodic, cc)", f0min, f0max)
         numPoints = call(pointProcess, "Get number of points")
         # time step(s), num formants(int), formant ceiling(Hz), window length(s), Pre-emphasis from(Hz)
-        formants = call(snd_part, "To Formant (burg)", 0.01, 5, 8000, 0.02, 50)
+        formants = call(snd_part, "To Formant (burg)",  0.01, 5, 8000, 0.025, 50)
         
         f1_list = []
         f2_list = []
@@ -400,3 +462,466 @@ def process_frames(d,sound):
         
     return out_dictionery
     
+
+def compute_filterbank(low_freq_mel,NFFT,nfilt,Fs):
+    high_freq_mel = (2595 * np.log10(1 + (Fs / 2) / 700))  # Convert Hz to Mel
+    mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
+    hz_points = (700 * (10**(mel_points / 2595) - 1))  # Convert Mel to Hz
+    binn = np.floor((NFFT + 1) * hz_points / Fs)
+    
+    fbank = np.zeros((nfilt, int(np.floor(NFFT / 2 ))))
+    for m in range(1, nfilt + 1):
+        f_m_minus = int(binn[m - 1])   # left
+        f_m = int(binn[m])             # center
+        f_m_plus = int(binn[m + 1])    # right
+    
+        for k in range(f_m_minus, f_m):
+            fbank[m - 1, k] = (k - binn[m - 1]) / (binn[m] - binn[m - 1])
+        for k in range(f_m, f_m_plus):
+            fbank[m - 1, k] = (binn[m + 1] - k) / (binn[m + 1] - binn[m])
+    filter_banks = fbank 
+    return filter_banks
+    
+def cmvn(vec, variance_normalization=False):
+    """ This function is aimed to perform global cepstral mean and
+        variance normalization (CMVN) on input feature vector "vec".
+        The code assumes that there is one observation per row.
+    Args:
+        vec (array): input feature matrix
+            (size:(num_observation,num_features))
+        variance_normalization (bool): If the variance
+            normilization should be performed or not.
+    Return:
+          array: The mean(or mean+variance) normalized feature vector.
+    """
+    eps = np.finfo(float).eps
+    rows, cols = vec.shape
+
+    # Mean calculation
+    norm = np.mean(vec, axis=0)
+    norm_vec = np.tile(norm, (rows, 1))
+
+    # Mean subtraction
+    mean_subtracted = vec - norm_vec
+
+    # Variance normalization
+    if variance_normalization:
+        stdev = np.std(mean_subtracted, axis=0)
+        stdev_vec = np.tile(stdev, (rows, 1))
+        output = mean_subtracted / (stdev_vec + eps)
+    else:
+        output = mean_subtracted
+
+    return output
+
+@jit(nopython=True)
+def compute_accumulated_cost_matrix_subsequence_dtw(C):
+    """Given the cost matrix, compute the accumulated cost matrix for
+    subsequence dynamic time warping with step sizes {(1, 0), (0, 1), (1, 1)}
+
+    Args:
+        C (np.ndarray): Cost matrix
+
+    Returns:
+        D (np.ndarray): Accumulated cost matrix
+    """
+    N, M = C.shape
+    D = np.zeros((N, M))
+    D[:, 0] = np.cumsum(C[:, 0])
+    D[0, :] = C[0, :]
+    for n in range(1, N):
+        for m in range(1, M):
+            D[n, m] = C[n, m] + min(D[n-1, m], D[n, m-1], D[n-1, m-1])
+    return D
+
+@jit(nopython=True)
+def compute_accumulated_cost_matrix_subsequence_dtw_21(C):
+    """Given the cost matrix, compute the accumulated cost matrix for
+    subsequence dynamic time warping with step sizes sigma= {(1, 1), (2, 1), (1, 2)}
+
+    Args:
+        C (np.ndarray): Cost matrix
+
+    Returns:
+        D (np.ndarray): Accumulated cost matrix
+    """
+    N, M = C.shape
+    D = np.zeros((N + 1, M + 2))
+    D[0:1, :] = np.inf
+    D[:, 0:2] = np.inf
+
+    D[1, 2:] = C[0, :]
+
+    for n in range(1, N):
+        for m in range(0, M):
+            if n == 0 and m == 0:
+                continue
+            D[n+1, m+2] = C[n, m] + min(D[n-1+1, m-1+2], D[n-2+1, m-1+2], D[n-1+1, m-2+2])
+    D = D[1:, 2:]
+    return D
+
+def mininma_from_matching_function(Delta, rho=2, tau=0.2, num=None):
+    """Derives local minima positions of matching function in an iterative fashion
+
+    Args:
+        Delta (np.ndarray): Matching function
+        rho (int): Parameter to exclude neighborhood of a matching position for subsequent matches (Default value = 2)
+        tau (float): Threshold for maximum Delta value allowed for matches (Default value = 0.2)
+        num (int): Maximum number of matches (Default value = None)
+
+    Returns:
+        pos (np.ndarray): Array of local minima
+    """
+    Delta_tmp = Delta.copy()
+    M = len(Delta)
+    pos = []
+    num_pos = 0
+    rho = int(rho)
+    if num is None:
+        num = M
+    while num_pos < num and np.sum(Delta_tmp < tau) > 0:
+        m = np.argmin(Delta_tmp)
+        pos.append(m)
+        num_pos += 1
+        Delta_tmp[max(0, m - rho):min(m + rho, M)] = np.inf
+    pos = np.array(pos).astype(int)
+    return pos
+
+def matches_dtw(pos, D, stepsize=2):
+    """Derives matches from positions for DTW-based strategy
+
+    Args:
+        pos (np.ndarray): End positions of matches
+        D (np.ndarray): Accumulated cost matrix
+        stepsize (int): Parameter for step size condition (1 or 2) (Default value = 2)
+
+    Returns:
+        matches (np.ndarray): Array containing matches (start, end)
+    """
+    matches = np.zeros((len(pos), 2)).astype(int)
+    for k in range(len(pos)):
+        t = pos[k]
+        matches[k, 1] = t
+        if stepsize == 1:
+            P = compute_optimal_warping_path_subsequence_dtw(D, m=t)
+        if stepsize == 2:
+            P = compute_optimal_warping_path_subsequence_dtw_21(D, m=t)
+        s = P[0, 1]
+        matches[k, 0] = s
+    return matches
+
+@jit(nopython=True)
+def compute_optimal_warping_path_subsequence_dtw(D, m=-1):
+    """Given an accumulated cost matrix, compute the warping path for
+    subsequence dynamic time warping with step sizes {(1, 0), (0, 1), (1, 1)}
+    Args:
+        D (np.ndarray): Accumulated cost matrix
+        m (int): Index to start back tracking; if set to -1, optimal m is used (Default value = -1)
+
+    Returns:
+        P (np.ndarray): Optimal warping path (array of index pairs)
+    """
+    N, M = D.shape
+    n = N - 1
+    if m < 0:
+        m = D[N - 1, :].argmin()
+    P = [(n, m)]
+
+    while n > 0:
+        if m == 0:
+            cell = (n - 1, 0)
+        else:
+            val = min(D[n-1, m-1], D[n-1, m], D[n, m-1])
+            if val == D[n-1, m-1]:
+                cell = (n-1, m-1)
+            elif val == D[n-1, m]:
+                cell = (n-1, m)
+            else:
+                cell = (n, m-1)
+        P.append(cell)
+        n, m = cell
+    P.reverse()
+    P = np.array(P)
+    return P
+
+@jit(nopython=True)
+def compute_optimal_warping_path_subsequence_dtw_21(D, m=-1):
+    """Given an accumulated cost matrix, compute the warping path for
+    subsequence dynamic time warping with step sizes {(1, 1), (2, 1), (1, 2)}
+
+    Args:
+        D (np.ndarray): Accumulated cost matrix
+        m (int): Index to start back tracking; if set to -1, optimal m is used (Default value = -1)
+
+    Returns:
+        P (np.ndarray): Optimal warping path (array of index pairs)
+    """
+    N, M = D.shape
+    n = N - 1
+    if m < 0:
+        m = D[N - 1, :].argmin()
+    P = [(n, m)]
+
+    while n > 0:
+        if m == 0:
+            cell = (n-1, 0)
+        else:
+            val = min(D[n-1, m-1], D[n-2, m-1], D[n-1, m-2])
+            if val == D[n-1, m-1]:
+                cell = (n-1, m-1)
+            elif val == D[n-2, m-1]:
+                cell = (n-2, m-1)
+            else:
+                cell = (n-1, m-2)
+        P.append(cell)
+        n, m = cell
+    P.reverse()
+    P = np.array(P)
+    return P
+
+@jit(nopython=True)
+def normalize_feature_sequence(X, norm='2', threshold=0.0001, v=None):
+    """Normalizes the columns of a feature sequence
+
+    Args:
+        X (np.ndarray): Feature sequence
+        norm (str): The norm to be applied. '1', '2', 'max' or 'z' (Default value = '2')
+        threshold (float): An threshold below which the vector ``v`` used instead of normalization
+            (Default value = 0.0001)
+        v (float): Used instead of normalization below ``threshold``. If None, uses unit vector for given norm
+            (Default value = None)
+
+    Returns:
+        X_norm (np.ndarray): Normalized feature sequence
+    """
+    assert norm in ['1', '2', 'max', 'z']
+
+    K, N = X.shape
+    X_norm = np.zeros((K, N))
+
+    if norm == '1':
+        if v is None:
+            v = np.ones(K, dtype=np.float64) / K
+        for n in range(N):
+            s = np.sum(np.abs(X[:, n]))
+            if s > threshold:
+                X_norm[:, n] = X[:, n] / s
+            else:
+                X_norm[:, n] = v
+
+    if norm == '2':
+        if v is None:
+            v = np.ones(K, dtype=np.float64) / np.sqrt(K)
+        for n in range(N):
+            s = np.sqrt(np.sum(X[:, n] ** 2))
+            if s > threshold:
+                X_norm[:, n] = X[:, n] / s
+            else:
+                X_norm[:, n] = v
+
+    if norm == 'max':
+        if v is None:
+            v = np.ones(K, dtype=np.float64)
+        for n in range(N):
+            s = np.max(np.abs(X[:, n]))
+            if s > threshold:
+                X_norm[:, n] = X[:, n] / s
+            else:
+                X_norm[:, n] = v
+
+    if norm == 'z':
+        if v is None:
+            v = np.zeros(K, dtype=np.float64)
+        for n in range(N):
+            mu = np.sum(X[:, n]) / K
+            sigma = np.sqrt(np.sum((X[:, n] - mu) ** 2) / (K - 1))
+            if sigma > threshold:
+                X_norm[:, n] = (X[:, n] - mu) / sigma
+            else:
+                X_norm[:, n] = v
+
+    return X_norm
+
+def plot_matches(ax, matches, Delta, Fs=1, alpha=0.2, color='r', s_marker='o', t_marker=''):
+    """Plots matches into existing axis
+
+    Args:
+        ax: Axis
+        matches: Array of matches (start, end)
+        Delta: Matching function
+        Fs: Feature rate (Default value = 1)
+        alpha: Transparency pramaeter for match visualization (Default value = 0.2)
+        color: Color used to indicated matches (Default value = 'r')
+        s_marker: Marker used to indicate start of matches (Default value = 'o')
+        t_marker: Marker used to indicate end of matches (Default value = '')
+    """
+    y_min, y_max = ax.get_ylim()
+    for (s, t) in matches:
+        ax.plot(s/Fs, Delta[s], color=color, marker=s_marker, linestyle='None')
+        ax.plot(t/Fs, Delta[t], color=color, marker=t_marker, linestyle='None')
+        rect = patches.Rectangle(((s-0.5)/Fs, y_min), (t-s+1)/Fs, y_max, facecolor=color, alpha=alpha)
+        ax.add_patch(rect)
+
+
+def plot_signal(x, Fs=1, T_coef=None, ax=None, figsize=(6, 2), xlabel='Time (seconds)', ylabel='', title='', dpi=72,
+                ylim=True, **kwargs):
+    """Line plot visualization of a signal, e.g. a waveform or a novelty function.
+
+    Args:
+        x: Input signal
+        Fs: Sample rate (Default value = 1)
+        T_coef: Time coeffients. If None, will be computed, based on Fs. (Default value = None)
+        ax: The Axes instance to plot on. If None, will create a figure and axes. (Default value = None)
+        figsize: Width, height in inches (Default value = (6, 2))
+        xlabel: Label for x axis (Default value = 'Time (seconds)')
+        ylabel: Label for y axis (Default value = '')
+        title: Title for plot (Default value = '')
+        dpi: Dots per inch (Default value = 72)
+        ylim: True or False (auto adjust ylim or nnot) or tuple with actual ylim (Default value = True)
+        **kwargs: Keyword arguments for matplotlib.pyplot.plot
+
+    Returns:
+        fig: The created matplotlib figure or None if ax was given.
+        ax: The used axes.
+        line: The line plot
+    """
+    fig = None
+    if ax is None:
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        ax = plt.subplot(1, 1, 1)
+    if T_coef is None:
+        T_coef = np.arange(x.shape[0]) / Fs
+
+    if 'color' not in kwargs:
+        kwargs['color'] = 'gray'
+
+    line = ax.plot(T_coef, x, **kwargs)
+
+    ax.set_xlim([T_coef[0], T_coef[-1]])
+    if ylim is True:
+        ylim_x = x[np.isfinite(x)]
+        x_min, x_max = ylim_x.min(), ylim_x.max()
+        if x_max == x_min:
+            x_max = x_max + 1
+        ax.set_ylim([min(1.1 * x_min, 0.9 * x_min), max(1.1 * x_max, 0.9 * x_max)])
+    elif ylim not in [True, False, None]:
+        ax.set_ylim(ylim)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    if fig is not None:
+        plt.tight_layout()
+
+    return fig, ax, line
+
+def plot_matrix(X, Fs=1, Fs_F=1, T_coef=None, F_coef=None, xlabel='Time (seconds)', ylabel='Frequency (Hz)',
+                xlim=None, ylim=None, clim=None, title='', dpi=72,
+                colorbar=True, colorbar_aspect=20.0, cbar_label='', ax=None, figsize=(6, 3), **kwargs):
+    """2D raster visualization of a matrix, e.g. a spectrogram or a tempogram.
+
+    Args:
+        X: The matrix
+        Fs: Sample rate for axis 1 (Default value = 1)
+        Fs_F: Sample rate for axis 0 (Default value = 1)
+        T_coef: Time coeffients. If None, will be computed, based on Fs. (Default value = None)
+        F_coef: Frequency coeffients. If None, will be computed, based on Fs_F. (Default value = None)
+        xlabel: Label for x-axis (Default value = 'Time (seconds)')
+        ylabel: Label for y-axis (Default value = 'Frequency (Hz)')
+        xlim: Limits for x-axis (Default value = None)
+        ylim: Limits for y-axis (Default value = None)
+        clim: Color limits (Default value = None)
+        title: Title for plot (Default value = '')
+        dpi: Dots per inch (Default value = 72)
+        colorbar: Create a colorbar. (Default value = True)
+        colorbar_aspect: Aspect used for colorbar, in case only a single axes is used. (Default value = 20.0)
+        cbar_label: Label for colorbar (Default value = '')
+        ax: Either (1.) a list of two axes (first used for matrix, second for colorbar), or (2.) a list with a single
+            axes (used for matrix), or (3.) None (an axes will be created). (Default value = None)
+        figsize: Width, height in inches (Default value = (6, 3))
+        **kwargs: Keyword arguments for matplotlib.pyplot.imshow
+
+    Returns:
+        fig: The created matplotlib figure or None if ax was given.
+        ax: The used axes.
+        im: The image plot
+    """
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
+        ax = [ax]
+    if T_coef is None:
+        T_coef = np.arange(X.shape[1]) / Fs
+    if F_coef is None:
+        F_coef = np.arange(X.shape[0]) / Fs_F
+
+    if 'extent' not in kwargs:
+        x_ext1 = (T_coef[1] - T_coef[0]) / 2
+        x_ext2 = (T_coef[-1] - T_coef[-2]) / 2
+        y_ext1 = (F_coef[1] - F_coef[0]) / 2
+        y_ext2 = (F_coef[-1] - F_coef[-2]) / 2
+        kwargs['extent'] = [T_coef[0] - x_ext1, T_coef[-1] + x_ext2, F_coef[0] - y_ext1, F_coef[-1] + y_ext2]
+    if 'cmap' not in kwargs:
+        kwargs['cmap'] = 'gray_r'
+    if 'aspect' not in kwargs:
+        kwargs['aspect'] = 'auto'
+    if 'origin' not in kwargs:
+        kwargs['origin'] = 'lower'
+    if 'interpolation' not in kwargs:
+        kwargs['interpolation'] = 'nearest'
+
+    im = ax[0].imshow(X, **kwargs)
+
+    if len(ax) == 2 and colorbar:
+        cbar = plt.colorbar(im, cax=ax[1])
+        cbar.set_label(cbar_label)
+    elif len(ax) == 2 and not colorbar:
+        ax[1].set_axis_off()
+    elif len(ax) == 1 and colorbar:
+        plt.sca(ax[0])
+        cbar = plt.colorbar(im, aspect=colorbar_aspect)
+        cbar.set_label(cbar_label)
+
+    ax[0].set_xlabel(xlabel)
+    ax[0].set_ylabel(ylabel)
+    ax[0].set_title(title)
+    if xlim is not None:
+        ax[0].set_xlim(xlim)
+    if ylim is not None:
+        ax[0].set_ylim(ylim)
+    if clim is not None:
+        im.set_clim(clim)
+
+    if fig is not None:
+        plt.tight_layout()
+
+    return fig, ax, im
+
+def compressed_gray_cmap(alpha=5, N=256, reverse=False):
+    """Create a logarithmically or exponentially compressed grayscale colormap.
+
+    Args:
+        alpha (float): The compression factor. If alpha > 0, it performs log compression (enhancing black colors).
+            If alpha < 0, it performs exp compression (enhancing white colors).
+            Raises an error if alpha = 0. (Default value = 5)
+        N (int): The number of rgb quantization levels (usually 256 in matplotlib) (Default value = 256)
+        reverse (bool): If False then "white to black", if True then "black to white" (Default value = False)
+
+    Returns:
+        color_wb (mpl.colors.LinearSegmentedColormap): The colormap
+    """
+    assert alpha != 0
+
+    gray_values = np.log(1 + abs(alpha) * np.linspace(0, 1, N))
+    gray_values /= gray_values.max()
+
+    if alpha > 0:
+        gray_values = 1 - gray_values
+    else:
+        gray_values = gray_values[::-1]
+
+    if reverse:
+        gray_values = gray_values[::-1]
+
+    gray_values_rgb = np.repeat(gray_values.reshape(N, 1), 3, axis=1)
+    color_wb = LinearSegmentedColormap.from_list('color_wb', gray_values_rgb, N=N)
+    return color_wb

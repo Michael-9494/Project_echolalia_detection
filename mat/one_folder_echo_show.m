@@ -2,7 +2,7 @@ clear;close all;clc
 Fs = 16000;
 flag =1;
 
-load("18_12_2022_3_25092022.mat")
+load("21_12_2022_3_25092022.mat")
 
 
 Param = struct();
@@ -22,7 +22,7 @@ alpha = 1.08; % for frequency warping 0.88 -1.12
 
 % F_for_spect = linspace(0,Fs/2,81);% generates n points. The spacing between the points is (x2-x1)/(n-1).);
 % Recs_for_cry_scream_18092022_ECHO
-for file = 1:length(all)
+for file = 3:length(all)
   VTLN =0;
   Eb_T=all(file).NRG_median_therapist;ZC_T = all(file).ZCR_median_therapist;
   Eb_C= all(file).NRG_median_Child; ZC_C = all(file).ZCR_median_Child;

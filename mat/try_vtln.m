@@ -98,7 +98,7 @@ PowerSpectrum_therapist = S.*conj(S);
 NumBands = 26;
 range = [0,Fs/2];
 
-[Filter_Bank,center_Frequencies,MF,BW,M_tilda,Filter_Bank_of_ones]...
+[Filter_Bank,center_Frequencies,Filter_Bank_of_ones]...
     = Mel_Filter_bank(range,WindowLenSamp,Fs,NumBands);
 
 figure,plot(F,Filter_Bank.'),grid on;
@@ -120,7 +120,7 @@ m = m+1;   % m [1...M=numBands]
 
 lamba_m = (2*m-1)/(2*NumBands);
 
-warped_lamba_m = th_p_of_Lamda1(alpha(1),lamba_m);
+% warped_lamba_m = th_p_of_Lamda1(alpha(1),lamba_m);
 % DCT_mat = sqrt(2 / NumBands) * cos(pi * th_p_of_Lamda1(alpha(1),lamba_m).* k );
 % DCT_mat(1,:) = DCT_mat(1,:) / sqrt(2);
 DCT_mat = sqrt(2 / NumBands) * cos(pi *lamba_m.* k );

@@ -23,7 +23,7 @@ Recs_for_cry_scream1 ="_25092022";
 
 Param = struct();
 % start with feature extraction
-Param.alpha=0.63; % for pre emphasis15/16
+Param.alpha=exp(-(2*pi*50)/Fs); % for pre emphasis15/16
 Param.WindowLength=20*10^-3;  % 30 [mS] window
 Param.WindowLenSamp=(Param.WindowLength*Fs);
 Param.Overlap=50;             % 50% overlap
@@ -120,7 +120,7 @@ for file  = 3:length(Autism_data_in)
 end
 all = all(3:end);
 tic
-new_file = "18_12_2022_3"+Recs_for_cry_scream1+".mat";
+new_file = "21_12_2022_3"+Recs_for_cry_scream1+".mat";
 disp(['start saving'+ string(new_file)])
 save(new_file,'all', '-v7.3');%(i)
 
