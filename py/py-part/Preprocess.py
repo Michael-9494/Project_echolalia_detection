@@ -110,14 +110,7 @@ def stft(Signal, window, Hopsize, only_positive_frequencies=False):
         X = X[0:K, :]
     return X
 
-def plot_spectrogram(Y, sr, hop_length, y_axis="linear"):
-    plt.figure(figsize=(25, 10))
-    librosa.display.specshow(Y, 
-                             sr=sr, 
-                             hop_length=hop_length, 
-                             x_axis="time", 
-                             y_axis=y_axis)
-    plt.colorbar(format="%+2.f")
+
 
 def rmse(signal, frame_size, hop_length):
     rmse = []
@@ -129,104 +122,7 @@ def rmse(signal, frame_size, hop_length):
     return np.array(rmse) 
 
     
-# def spread_mel(hz_points,hz_c,hz_size,hz_max):
-# #  hz_points- is a discrete array of frequencies in Hz, it should be spaced
-# #             in mel frequencies.
-# #  hz_c- is defined here as the frequency index for which we are computing
-# #        the masking (rather than the actual frequency).
-# #  hz_size- defines the resolution of the output masking array
-# #  hz_max-  the upper frequency limit to evaluate
-# #        over (normally set to the Nyquist frequency).
-#     band=np.zeros(1, hz_size);
-#     hz1=hz_points(max(1,hz_c-1));                 #start
-#     hz2=hz_points(hz_c);                          # middle
-#     hz3=hz_points(min(len(hz_points),hz_c+1)); #end
 
-#     return band    
-
-# def mfcc_model(seg, N, M, Fs):
-#  # Do FFT of audio frame seg, map to M MFCCs
-#  # from 0 Hz to Fs/2 Hz, using N filterbanks
-#  # typical values N=26,M=12,Fs=8000,seg~20ms
-# m_low=0; #%mel span lower limit
-# m_top=f2mel(Fs/2); #mel span upper limit
-# mdiv=(m_top-m_low)/(N-1); #mel resolution
-# # %Define an array of centre frequencies
-
-# xm=m_low:mdiv:m_top;
-# %Convert this to Hz frequencies
-# xf=mel2f(xm);
-# %Quantise to the FFT resolution
-# xq = floor((length(seg)/2 + 1)*xf/(Fs/2));
-# %Take the FFT of the speech...
-# S=fft(seg);
-# S=abs(2*(S.*S)/length(S));
-# S=S(1:length(S)/2);
-# F=[1:length(S)]*(Fs/2)/length(S);
-
-# %Compute the mel filterbanks.m
-# x1=zeros(1,N);
-# for xi=1:N
-#     band=spread_mel(xf,xi,length(S),Fs/2);
-#     x1(xi)=sum(band.*S');
-# end
-# x=log(x1);
-# %Convert to MFCC using loop (could use matrix)
-# cc=zeros(1,M);
-# for xc=1:M
-#     cc(xc)=sqrt(2/N)*sum(x.*cos(pi*xc*([1:N]-0.5)/N));
-# end
-# end
-    
-# This function measures formants using Formant Position formula
-def measureFormants(sound, wave_file, f0min,f0max):
-    sound = parselmouth.Sound(sound) # read the sound
-    pitch = call(sound, "To Pitch (cc)", 0, f0min, 15, 'no', 0.03, 0.45, 0.01, 0.35, 0.14, f0max)
-    pointProcess = call(sound, "To PointProcess (periodic, cc)", f0min, f0max)
-    
-    formants = call(sound, "To Formant (burg)", 0.0025, 5, 5000, 0.025, 50)
-    numPoints = call(pointProcess, "Get number of points")
-
-    f1_list = []
-    f2_list = []
-    f3_list = []
-    f4_list = []
-    time_f = []
-    
-    # Measure formants only at glottal pulses
-    for point in range(0, numPoints):
-        point += 1
-        t = call(pointProcess, "Get time from index", point)
-        f1 = call(formants, "Get value at time", 1, t, 'Hertz', 'Linear')
-        f2 = call(formants, "Get value at time", 2, t, 'Hertz', 'Linear')
-        f3 = call(formants, "Get value at time", 3, t, 'Hertz', 'Linear')
-        f4 = call(formants, "Get value at time", 4, t, 'Hertz', 'Linear')
-        time_f.append(t)
-        f1_list.append(f1)
-        f2_list.append(f2)
-        f3_list.append(f3)
-        f4_list.append(f4)
-        
-    
-    f1_list_no_nan = [f1 for f1 in f1_list if str(f1) != 'nan']
-    f2_list_no_nan = [f2 for f2 in f2_list if str(f2) != 'nan']
-    f3_list_no_nan = [f3 for f3 in f3_list if str(f3) != 'nan']
-    f4_list_no_nan = [f4 for f4 in f4_list if str(f4) != 'nan']
-    
-    # calculate mean formants across pulses
-    f1_mean = statistics.mean(f1_list_no_nan)
-    f2_mean = statistics.mean(f2_list_no_nan)
-    f3_mean = statistics.mean(f3_list_no_nan)
-    f4_mean = statistics.mean(f4_list_no_nan)
-    
-    # calculate median formants across pulses, this is what is used in all subsequent calcualtions
-    # you can use mean if you want, just edit the code in the boxes below to replace median with mean
-    f1_median = statistics.median(f1_list_no_nan)
-    f2_median = statistics.median(f2_list_no_nan)
-    f3_median = statistics.median(f3_list_no_nan)
-    f4_median = statistics.median(f4_list_no_nan)
-    
-    return f1_list, f2_list, f3_list , f4_list,f1_mean, f2_mean, f3_mean, f4_mean, f1_median, f2_median, f3_median, f4_median,time_f
 
 
 
@@ -270,7 +166,7 @@ def runPCA(df):
     return principalDf
 
 
-def draw_spectrogram(spectrogram, dynamic_range=70): 
+def draw_spectrogram(spectrogram, dynamic_range=50): 
     X, Y = spectrogram.x_grid(),spectrogram.y_grid() 
     sg_db = 10 * np.log10(spectrogram.values) 
     plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max()- dynamic_range, cmap='afmhot')
@@ -290,22 +186,41 @@ def draw_pitch(pitch):
     # replace unvoiced samples by NaN to not plot 
     pitch_values = pitch.selected_array['frequency'] 
     pitch_values[pitch_values==0] = np.nan 
-    plt.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w')
+    plt.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w', label=" pitch")
     plt.plot(pitch.xs(), pitch_values, 'o', markersize=2) 
     plt.grid(False) 
     plt.ylim(0, pitch.ceiling) 
     plt.ylabel("fundamental frequency [Hz]")
     
-@jit( forceobj=True)    
-def process_frames(d,sound):
+def quantize_matrix(C, quant_fct=None):
+    """Quantize matrix values in a logarithmic manner (as done for CENS features)
+    Args:
+        C (np.ndarray): Input matrix
+        quant_fct (list): List specifying the quantization function (Default value = None)
+
+    Returns:
+        C_quant (np.ndarray): Output matrix
+    """
+    C_quant = np.empty_like(C)
+    if quant_fct is None:
+        quant_fct = [(0.0, 0.05, 0), (0.05, 0.1, 1), (0.1, 0.2, 2), (0.2, 0.4, 3), (0.4, 1, 4)]
+    for min_val, max_val, target_val in quant_fct:
+        mask = np.logical_and(min_val <= C, C < max_val)
+        C_quant[mask] = target_val
+    return C_quant
     
-    out_dictionery = {'F1':{},'F2':{},'F3':{},'intensity':{},
+@jit( forceobj=True)    
+def process_frames(d,sound,window_length,time_step):
+    
+    out_dictionery = {'F1':{},'F2':{},'F3':{},
+                      'intensity':{},
                       'F1_mean':{},'F2_mean':{},'F3_mean':{},
                       'F1_median':{},'F2_median':{},'F3_median':{},
                       'time_f':{},'Event':{},'Speaker':{},
                       'speech_data_time':{},'speech_data':{},
-                      'pitch':{},'spectrogram':{},'pitch_obj':{},'sound_obj':{}}
-    # ,'f':{},'t':{}
+                      'pitch':{},'spectrogram':{},'pitch_obj':{},
+                      'sound_obj':{},'f':{},'t':{},'t_spect':{}}
+    # 
     for i in range(0,len(d['Event'])):
         snd_part = sound.extract_part(from_time=d['Start_time'][i],
                                                      to_time =d['End_time'][i], preserve_times=True )
@@ -372,7 +287,16 @@ def process_frames(d,sound):
         # used in the formulas in the article.
         
         #  f0max
-        pitch = call(snd_part, "To Pitch (cc)", 0, 60, 15, 'no', 0.03, 0.35, 0.01, 0.35, 0.14, 1600)
+        pitch = call(snd_part, "To Pitch (cc)", 0,              # time_step(s)
+                     60,                                        # f0min pitch_floor(Hz)
+                     15,
+                     'no',
+                     0.03,                                      # silence_threshold
+                     0.45,                                      # Voicing_th               
+                     0.01,
+                     0.35,
+                     0.14,
+                     1600)                                      #  f0max
         # pitch = snd_part.to_pitch()
         pitch_values = pitch.selected_array['frequency'] 
         pitch_values[pitch_values==0] = np.nan
@@ -380,10 +304,10 @@ def process_frames(d,sound):
         out_dictionery['pitch_obj'][i] = pitch
         # pre_emphasized_sound = snd_part.copy() 
         # pre_emphasized_sound.pre_emphasize() 
-        spectrogram = snd_part.to_spectrogram(window_length=0.01,maximum_frequency=8000)
-        # t, f = spectrogram.x_grid(),spectrogram.y_grid()
-        # out_dictionery['f'][i] = f
-        # out_dictionery['t'][i] = t
+        spectrogram = snd_part.to_spectrogram(window_length=window_length,maximum_frequency=8000)
+        t, f = spectrogram.x_grid(),spectrogram.y_grid()
+        out_dictionery['f'][i] = f
+        out_dictionery['t_spect'][i] = t
         # sg_db = 10 * np.log10(spectrogram.values)
         out_dictionery['spectrogram'][i] = spectrogram
         out_dictionery['Event'][i]=d['Event'][i]
@@ -392,10 +316,17 @@ def process_frames(d,sound):
         out_dictionery['intensity'][i]=intensity
         f0min=60
         f0max=1600
-        pointProcess = call(snd_part, "To PointProcess (periodic, cc)", f0min, f0max)
+        pointProcess = call(snd_part, "To PointProcess (periodic, cc)",
+                            f0min,
+                            f0max)
         numPoints = call(pointProcess, "Get number of points")
-        # time step(s), num formants(int), formant ceiling(Hz), window length(s), Pre-emphasis from(Hz)
-        formants = call(snd_part, "To Formant (burg)",  0.01, 5, 8000, 0.025, 50)
+           
+        formants = call(snd_part, "To Formant (burg)",
+                        time_step,                                  # time step(s),
+                        5,  
+                        8000,                                       # formant ceiling(Hz),
+                        window_length,                              # window length(s),
+                        50)                                         # Pre-emphasis from(Hz)
         
         f1_list = []
         f2_list = []
@@ -896,7 +827,7 @@ def plot_matrix(X, Fs=1, Fs_F=1, T_coef=None, F_coef=None, xlabel='Time (seconds
 
     return fig, ax, im
 
-def compressed_gray_cmap(alpha=5, N=256, reverse=False):
+def compressed_gray_cmap(alpha=5, N=256, reverse=True):
     """Create a logarithmically or exponentially compressed grayscale colormap.
 
     Args:

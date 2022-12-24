@@ -92,39 +92,47 @@ if __name__ == '__main__':
     #                   'time_f':{},'Event':{},'Speaker':{},
     #                   'speech_data_time':{},'speech_data':{},
     #                   'pitch':{},'spectrogram':{},'pitch_obj':{}}
-    out_dictionery1 = Preprocess.process_frames(d,sound)
+    
+    time_step =0.01       #     time step(s) np.round(*Fs) 
+    window_length =0.02    # window length(s) np.round(*Fs)
+    out_dictionery1 = Preprocess.process_frames(d,pre_emphasized_sound,window_length,time_step)
  
  
     # for i in range (0,len(out_dictionery1['time_f'])):
-        # Audio(data=out_dictionery1['speech_data'][1],rate=sound.sampling_frequency, autoplay=True)
-
-        # winsound.PlaySound(out_dictionery1['speech_data'][1], winsound.SND_FILENAME)
-        # plt.figure()
-        # plt.plot(out_dictionery1['speech_data_time'][i], 
-        #          out_dictionery1['speech_data'][i],
-        #          label=str(out_dictionery1['Speaker'][i]+'_'+ out_dictionery1['Event'][i]))
-        # plt.legend()
-        # plt.figure()
-        # Preprocess.draw_spectrogram(out_dictionery1['spectrogram'][i])
-        # # plt.twinx() 
-        # plt.plot(out_dictionery1['time_f'][i],
-        #          out_dictionery1['F1'][i], 'o', markersize=3,color='g', label=" F-1")
-        # plt.plot(out_dictionery1['time_f'][i],
-        #          out_dictionery1['F2'][i], 'o', markersize=3,color='m', label=" F-2")
-        # plt.plot(out_dictionery1['time_f'][i],
-        #          out_dictionery1['F3'][i], 'o', markersize=3,color='b', label=" F-3")
-        # plt.legend()
-        # plt.twinx() 
-        # Preprocess.draw_pitch(out_dictionery1['pitch_obj'][i]) 
-        # # plt.xlim([snd_part.xmin, snd_part.xmax]) 
-        # plt.title(str(out_dictionery1['Speaker'][i]+'_'+ voiceID))
-        # Preprocess.draw_intensity(out_dictionery1['intensity'][i]) 
-        # plt.xlim([snd.xmin, snd.xmax])
-        # plt.show()
-        # i+=1
-    
         
-    spectrogram =  (out_dictionery1['spectrogram'][1].values)
+    #     F1 = out_dictionery1['F1'][i].values
+    #     F2 = out_dictionery1['F2'][i]
+    #     F3 = out_dictionery1['F3'][i]
+    #     plt.figure()
+    #     plt.plot(out_dictionery1['speech_data_time'][i], 
+    #               out_dictionery1['speech_data'][i],
+    #               label=str(out_dictionery1['Speaker'][i]+'_'+ out_dictionery1['Event'][i]))
+    #     plt.legend()
+    #     plt.figure()
+    #     Preprocess.draw_spectrogram(out_dictionery1['spectrogram'][i])
+    #     # plt.twinx() 
+    #     plt.plot(out_dictionery1['time_f'][i],
+    #               F1, 'o', markersize=3,color='g', label=" F-1")
+    #     plt.plot(out_dictionery1['time_f'][i],
+    #               F2, 'o', markersize=3,color='m', label=" F-2")
+    #     plt.plot(out_dictionery1['time_f'][i],
+    #               F3, 'o', markersize=3,color='b', label=" F-3")
+    #     plt.legend()
+    #     plt.twinx() 
+    #     Preprocess.draw_pitch(out_dictionery1['pitch_obj'][i]) 
+    #     # plt.xlim([snd_part.xmin, snd_part.xmax]) 
+    #     plt.title(str(out_dictionery1['Speaker'][i]+'_'+ voiceID))
+    #     # Preprocess.draw_intensity(out_dictionery1['intensity'][i]) 
+    #     # plt.xlim([snd.xmin, snd.xmax])
+    #     plt.show()
+        
+    #     i+=1
+    
+    
+    
+    f1 = out_dictionery1['f'][1]
+    tt = out_dictionery1['t_spect'][1]
+    spectrogram =  (out_dictionery1['spectrogram'][0].values)
     low_freq_mel = 0
     NFFT = 1024
     nfilt = 250  
@@ -150,19 +158,20 @@ if __name__ == '__main__':
     """ This function is aimed to perform global cepstral mean and
         variance normalization (CMVN) on input feature vector "vec".
         The code assumes that there is one observation per row."""
-    CMVN_mat  =Preprocess.cmvn(mfcc.T, variance_normalization=True)
-    CMVN_mat = CMVN_mat.T
-    X =  Preprocess.normalize_feature_sequence(CMVN_mat)
-    
+    # CMVN_mat  =Preprocess.cmvn(mfcc.T, variance_normalization=True)
+    # CMVN_mat = CMVN_mat.T
+    X =  Preprocess.normalize_feature_sequence(spectrogram)
+    # X = Preprocess.quantize_matrix(x)
     
     
     
     first_echo_ther = out_dictionery1['speech_data'][1]
+    duration1 = first_echo_ther.shape[0]/Fs
     first_echo_ther_time = out_dictionery1['speech_data_time'][1]
 
     
-    time_diff = d['End_time'][1:-1]-d['Start_time'][1:-1]
-    spect_2 = out_dictionery1['spectrogram'][2].values
+    time_diff = d['End_time'][0:-1]-d['Start_time'][0:-1]
+    spect_2 = out_dictionery1['spectrogram'][1].values
     new_echo_chain = np.concatenate([out_dictionery1['spectrogram'][x].values.T for x in range(1,len(out_dictionery1['spectrogram']))])
     # new_echo_chain_time = np.concatenate([out_dictionery1['spectrogram'][x] for x in range(1,len(out_dictionery1['speech_data_time']))])
     filter_banks_other = fbank @ new_echo_chain.T
@@ -170,17 +179,14 @@ if __name__ == '__main__':
    
     mfcc_other = DCT_mat @ np.log10(filter_banks_other)
 
-    CMVN_mat_other  =Preprocess.cmvn(mfcc_other.T, variance_normalization=True)
-    CMVN_mat_other = CMVN_mat_other.T
-    Y =Preprocess.normalize_feature_sequence(CMVN_mat_other)
+    # CMVN_mat_other  =Preprocess.cmvn(mfcc_other.T, variance_normalization=True)
+    # CMVN_mat_other = CMVN_mat_other.T 
+    Y =Preprocess.normalize_feature_sequence(new_echo_chain.T)
+    # Y = Preprocess.quantize_matrix(y)
     
-    
-    """Compute cost matrix via dot product
-        X (np.ndarray): First sequence (K x N matrix)
-        Y (np.ndarray): Second sequence (K x M matrix)
-        C (np.ndarray): Cost matrix
-    """
-    C = 1 - X.T @ Y
+   
+
+    C = 1 - X.T @ Y                 #Compute cost matrix via dot product
     
     
     
@@ -191,7 +197,7 @@ if __name__ == '__main__':
     # plt.xlim(d['Start_time'][2],d['End_time'][2])
              
     # plt.legend()
-    stepsize = 2
+    stepsize = 1
     
     if stepsize == 1:
         D = Preprocess.compute_accumulated_cost_matrix_subsequence_dtw(C)
@@ -203,25 +209,25 @@ if __name__ == '__main__':
     
     pos = Preprocess.mininma_from_matching_function(Delta,
                                                     rho=2*N//3,
-                                                    tau=0.2,
-                                                    num=3)
+                                                    tau=0.4,
+                                                    num=2)
     matches = Preprocess.matches_dtw(pos,
                                      D,
                                      stepsize=1)
-    
+    Fs_res = Fs/NFFT
     fig, ax = plt.subplots(2, 1,  figsize=(16, 10))
     cmap = Preprocess.compressed_gray_cmap(alpha=-10, reverse=True)
-    Preprocess.plot_matrix(C, Fs=Fs, Fs_F=Fs, ax=[ax[0]], ylabel='Time (seconds)',
+    Preprocess.plot_matrix(C, Fs=Fs_res, Fs_F=Fs_res, ax=[ax[0]], ylabel='Time (seconds)',
                          title='Cost matrix $C$ with ground truth annotations (blue rectangles)', 
                          colorbar=False,cmap=cmap)
-    Preprocess.plot_matches(ax[0], [[0,606]], Delta, Fs=Fs,color='b')
+    Preprocess.plot_matches(ax[0], [[0,570]], Delta, Fs=Fs_res,color='b')
 
     title = r'Matching function $\Delta_\mathrm{DTW}$ with matches (red rectangles)'
-    Preprocess.plot_signal(Delta,Fs=Fs, ax=ax[1], color='k', title=title)
+    Preprocess.plot_signal(Delta,Fs=Fs_res , ax=ax[1], color='k', title=title)
     ax[1].grid()
     # ax, matches, Delta, Fs=1,
-    Preprocess.plot_matches(ax[1], matches, Delta, Fs=Fs, s_marker='', t_marker='o')
+    Preprocess.plot_matches(ax[1], matches, Delta, Fs=Fs_res, s_marker='', t_marker='o')
 
    
-    
+        
 
