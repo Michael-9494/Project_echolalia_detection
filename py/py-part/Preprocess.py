@@ -210,189 +210,303 @@ def quantize_matrix(C, quant_fct=None):
     return C_quant
     
 @jit( forceobj=True)    
-def process_frames(d,sound,window_length,time_step):
+def process_frames(ADOS_speaker,sound,window_length,time_step):
     
     out_dictionery = {'F1':{},'F2':{},'F3':{},
                       'intensity':{},
-                      'F1_mean':{},'F2_mean':{},'F3_mean':{},
-                      'F1_median':{},'F2_median':{},'F3_median':{},
                       'time_f':{},'Event':{},'Speaker':{},
                       'speech_data_time':{},'speech_data':{},
                       'pitch':{},'spectrogram':{},'pitch_obj':{},
-                      'sound_obj':{},'f':{},'t':{},'t_spect':{}}
+                      'sound_obj':{},'f':{},'t':{},'t_spect':{},'warped_speech_data':{}}
     # 
-    for i in range(0,len(d['Event'])):
-        snd_part = sound.extract_part(from_time=d['Start_time'][i],
-                                                     to_time =d['End_time'][i], preserve_times=True )
-    
-        # snd_part = sound.extract_part(from_time=d['Start_time'][0],to_time =d['End_time'][0], preserve_times=True )
-        out_dictionery['speech_data_time'][i]=snd_part.xs()
-        out_dictionery['speech_data'][i]=snd_part.values.T  
-        out_dictionery['sound_obj'][i]=snd_part
-        # 0:    time_step(s) (standard value: 0.0)
-        # the measurement interval (frame duration), in seconds.
-        # If you supply 0, Praat will use a time step of 0.75 / (pitch fide),
-        # e.g. 0.01 seconds if the pitch floor is 75 Ha, in this example,
-        # Praat computes 100 pitch values per second.
+    for i in ADOS_speaker.index:
+            
+            snd_part = sound.extract_part(from_time=ADOS_speaker.loc[i,0],
+                                                         to_time =ADOS_speaker.loc[i,1], preserve_times=True )
         
-        # f0min pitch_floor(Hz) (standard value: 75 Hz)
-        # candidates below this frequency will not be recuted.
-        # This parameter determines the effective length of the analysis window: it will
-        # be 3 longest periods long, ie., if the pitch floor is 75 Hz, 
-        # the window will be effectively 3/75 = 0.04 seconds long.
-        # Note that if you set the time step to zero, the analysis windows
-        # for consecutive measurements will overlap appreciably: Praat will always
-        # compute 4 pitch values within one window length, i.e., the degree of oversampling is 4.
-        
-        
-        # 15 
-        
-        # 'no'       very_accurate
-        
-        #  0.03  silence_threshold  (standard value: 0.03)
-        # frames that do not contain amplitudes above this threshold 
-        # (relative to the global maximum amplitude), are probably silent.    
-        
-        
-        #  0.45  Voicing_th (standard value: 0.45)
-        # the strength of the unvoiced candidate,
-        # relative to the maximum possible autocorrelation.
-        # If the amount of periodic energy in a frame is more than this 
-        # of the total energy (the remainder being noise), then Praat will prefer
-        # to regard this frame as voiced; otherwise as unvoiced. To increase the
-        # number of unvoiced decisions, increase the voicing threshold.    
-        
-        #  0.01   Octave_cost(standard value: 0.01 per octave)
-        # degree of favouring of high-frequency candidates, relative to the maximum possible autocorrelation.
-        # This is necessary because even (or: especially) in the case of a 
-        # perfectly periodic signal, all undertones of Fo are equally strong
-        # candidates as Fo itself. To more strongly favour recruitment of high-frequency 
-        # candidates, increase this value
-     
-        #  0.35   octave-Jump cost    (standard value: 0.35)
-        # degree of disfavouring of pitch changes, relative to the maximum 
-        # possible autocorrelation. To decrease the number of large frequency jumps,
-        # increase this value. In contrast with what is described in the article,
-        # this value will be corrected for the time step:
-        # multiply by 0.01 s / TimeStep to get the value in the way it is 
-        # used in the formulas in the article.       
-        
-        
-        #  0.14  Voiced/Un-Voiced cost (standard value: 0.14)
-        # degree of disfavouring of voiced/unvoiced transitions, relative to 
-        # the maximum possible autocorrelation. To decrease the number of
-        # voiced/unvoiced transitions, increase this value. In contrast with what
-        # is described in the article, this value will be corrected for the time
-        # step: multiply by 0.01s / TimeStep to get the value in the way it is
-        # used in the formulas in the article.
-        
-        #  f0max
-        pitch = call(snd_part, "To Pitch (cc)", 0,              # time_step(s)
-                     60,                                        # f0min pitch_floor(Hz)
-                     15,
-                     'no',
-                     0.03,                                      # silence_threshold
-                     0.45,                                      # Voicing_th               
-                     0.01,
-                     0.35,
-                     0.14,
-                     1600)                                      #  f0max
-        # pitch = snd_part.to_pitch()
-        pitch_values = pitch.selected_array['frequency'] 
-        pitch_values[pitch_values==0] = np.nan
-        out_dictionery['pitch'][i] = pitch_values
-        out_dictionery['pitch_obj'][i] = pitch
-        # pre_emphasized_sound = snd_part.copy() 
-        # pre_emphasized_sound.pre_emphasize() 
-        spectrogram = snd_part.to_spectrogram(window_length=window_length,maximum_frequency=8000)
-        t, f = spectrogram.x_grid(),spectrogram.y_grid()
-        out_dictionery['f'][i] = f
-        out_dictionery['t_spect'][i] = t
-        # sg_db = 10 * np.log10(spectrogram.values)
-        out_dictionery['spectrogram'][i] = spectrogram
-        out_dictionery['Event'][i]=d['Event'][i]
-        out_dictionery['Speaker'][i]=d['Speaker'][i]
-        intensity = snd_part.to_intensity()
-        out_dictionery['intensity'][i]=intensity
-        f0min=60
-        f0max=1600
-        pointProcess = call(snd_part, "To PointProcess (periodic, cc)",
-                            f0min,
-                            f0max)
-        numPoints = call(pointProcess, "Get number of points")
-           
-        formants = call(snd_part, "To Formant (burg)",
-                        time_step,                                  # time step(s),
-                        5,  
-                        8000,                                       # formant ceiling(Hz),
-                        window_length,                              # window length(s),
-                        50)                                         # Pre-emphasis from(Hz)
-        
-        f1_list = []
-        f2_list = []
-        f3_list = []
-        f4_list = []
-        time_f = []
-        
-            # Measure formants only at glottal pulses
-        for point in range(0, numPoints):
-            point += 1
-            t = call(pointProcess, "Get time from index", point)
-            f1 = call(formants, "Get value at time", 1, t, 'Hertz', 'Linear')
-            f2 = call(formants, "Get value at time", 2, t, 'Hertz', 'Linear')
-            f3 = call(formants, "Get value at time", 3, t, 'Hertz', 'Linear')
-            f4 = call(formants, "Get value at time", 4, t, 'Hertz', 'Linear')
-            time_f.append(t)
-            f1_list.append(f1)
-            f2_list.append(f2)
-            f3_list.append(f3)
-            f4_list.append(f4)
-                
-        if f1_list:
-            f1_list_no_nan = [f1 for f1 in f1_list if str(f1) != 'nan']
-            f2_list_no_nan = [f2 for f2 in f2_list if str(f2) != 'nan']
-            f3_list_no_nan = [f3 for f3 in f3_list if str(f3) != 'nan']
-            # f4_list_no_nan = [f4 for f4 in f4_list if str(f4) != 'nan']
-           
-            # calculate mean formants across pulses
-            f1_mean = statistics.mean(f1_list_no_nan)
-            f2_mean = statistics.mean(f2_list_no_nan)
-            f3_mean = statistics.mean(f3_list_no_nan)
-            # f4_mean = statistics.mean(f4_list_no_nan)
-           
-            # # calculate median formants across pulses, this is what is used in all subsequent calcualtions
-            # # you can use mean if you want, just edit the code in the boxes below to replace median with mean
-            f1_median = statistics.median(f1_list_no_nan)
-            f2_median = statistics.median(f2_list_no_nan)
-            f3_median = statistics.median(f3_list_no_nan)
-            # f4_median = statistics.median(f4_list_no_nan)
-           
-            out_dictionery['time_f'][i]=time_f
-            out_dictionery['F1'][i]=f1_list
-            out_dictionery['F2'][i]=f2_list
-            out_dictionery['F3'][i]=f3_list
-            out_dictionery['F1_mean'][i]=f1_mean
-            out_dictionery['F2_mean'][i]=f2_mean
-            out_dictionery['F3_mean'][i]=f3_mean
-            out_dictionery['F1_median'][i]=f1_median
-            out_dictionery['F2_median'][i]=f2_median
-            out_dictionery['F3_median'][i]=f3_median
-        else:
-            out_dictionery['time_f'][i]=[]
-            out_dictionery['F1'][i]=[]
-            out_dictionery['F2'][i]=[]
-            out_dictionery['F3'][i]=[]
-            out_dictionery['F1_mean'][i]=[]
-            out_dictionery['F2_mean'][i]=[]
-            out_dictionery['F3_mean'][i]=[]
-            out_dictionery['F1_median'][i]=[]
-            out_dictionery['F2_median'][i]=[]
-            out_dictionery['F3_median'][i]=[]
-        # 
-        i += 1
-        
+            # snd_part = sound.extract_part(from_time=d['Start_time'][0],to_time =d['End_time'][0], preserve_times=True )
+            out_dictionery['speech_data_time'][i]=snd_part.xs()
+            out_dictionery['speech_data'][i]=snd_part.values.T  
+            out_dictionery['sound_obj'][i]=snd_part
+            
+            # ch = out_dictionery['speech_data'][i]
+            # fft_speech = np.fft.fft(ch)/len(ch)   #distribute energy
+            # fft_speech_Single_side = fft_speech[0:np.floor(len(ch)/2).astype(int)].copy() # get one-side spectrum  
+            # # fft_speech_Single_side2 = fft_speech_Single_side[1:-1] 
+            # fft_speech_Single_side[1:-1] = 2*fft_speech_Single_side[1:-1]    # % Multiple by 2 as a correction for amplitude
+            # warpedFrame = VTLN(fft_speech_Single_side, alpha=1.12)        
+            # warpedFrame[1:-1] = fft_speech_Single_side[1:-1]/2              # % Devide by 2 as a correction for amplitude
+            # warpedSpeech =np.fft.ifft(np.concatenate( (warpedFrame , warpedFrame[::-1,:].conj()))*len(ch))
+            # warpedSpeech = np.real(warpedSpeech)
+            # out_dictionery['warped_speech_data'][i] = warpedSpeech
+            
+            
+            
+            # 0:    time_step(s) (standard value: 0.0)
+            # the measurement interval (frame duration), in seconds.
+            # If you supply 0, Praat will use a time step of 0.75 / (pitch fide),
+            # e.g. 0.01 seconds if the pitch floor is 75 Ha, in this example,
+            # Praat computes 100 pitch values per second.
+            
+            # f0min pitch_floor(Hz) (standard value: 75 Hz)
+            # candidates below this frequency will not be recuted.
+            # This parameter determines the effective length of the analysis window: it will
+            # be 3 longest periods long, ie., if the pitch floor is 75 Hz, 
+            # the window will be effectively 3/75 = 0.04 seconds long.
+            # Note that if you set the time step to zero, the analysis windows
+            # for consecutive measurements will overlap appreciably: Praat will always
+            # compute 4 pitch values within one window length, i.e., the degree of oversampling is 4.
+            
+            
+            # 15 
+            
+            # 'no'       very_accurate
+            
+            #  0.03  silence_threshold  (standard value: 0.03)
+            # frames that do not contain amplitudes above this threshold 
+            # (relative to the global maximum amplitude), are probably silent.    
+            
+            
+            #  0.45  Voicing_th (standard value: 0.45)
+            # the strength of the unvoiced candidate,
+            # relative to the maximum possible autocorrelation.
+            # If the amount of periodic energy in a frame is more than this 
+            # of the total energy (the remainder being noise), then Praat will prefer
+            # to regard this frame as voiced; otherwise as unvoiced. To increase the
+            # number of unvoiced decisions, increase the voicing threshold.    
+            
+            #  0.01   Octave_cost(standard value: 0.01 per octave)
+            # degree of favouring of high-frequency candidates, relative to the maximum possible autocorrelation.
+            # This is necessary because even (or: especially) in the case of a 
+            # perfectly periodic signal, all undertones of Fo are equally strong
+            # candidates as Fo itself. To more strongly favour recruitment of high-frequency 
+            # candidates, increase this value
+         
+            #  0.35   octave-Jump cost    (standard value: 0.35)
+            # degree of disfavouring of pitch changes, relative to the maximum 
+            # possible autocorrelation. To decrease the number of large frequency jumps,
+            # increase this value. In contrast with what is described in the article,
+            # this value will be corrected for the time step:
+            # multiply by 0.01 s / TimeStep to get the value in the way it is 
+            # used in the formulas in the article.       
+            
+            
+            #  0.14  Voiced/Un-Voiced cost (standard value: 0.14)
+            # degree of disfavouring of voiced/unvoiced transitions, relative to 
+            # the maximum possible autocorrelation. To decrease the number of
+            # voiced/unvoiced transitions, increase this value. In contrast with what
+            # is described in the article, this value will be corrected for the time
+            # step: multiply by 0.01s / TimeStep to get the value in the way it is
+            # used in the formulas in the article.
+            
+            #  f0max
+            pitch = call(snd_part, "To Pitch (cc)", 0,              # time_step(s)
+                         60,                                        # f0min pitch_floor(Hz)
+                         15,
+                         'no',
+                         0.03,                                      # silence_threshold
+                         0.45,                                      # Voicing_th               
+                         0.01,
+                         0.35,
+                         0.14,
+                         1600)                                      #  f0max
+            # pitch = snd_part.to_pitch()
+            pitch_values = pitch.selected_array['frequency'] 
+            pitch_values[pitch_values==0] = np.nan
+            out_dictionery['pitch'][i] = pitch_values
+            out_dictionery['pitch_obj'][i] = pitch
+            # pre_emphasized_sound = snd_part.copy() 
+            # pre_emphasized_sound.pre_emphasize() 
+            spectrogram = snd_part.to_spectrogram(window_length=window_length,maximum_frequency=8000)
+            t, f = spectrogram.x_grid(),spectrogram.y_grid()
+            out_dictionery['f'][i] = f
+            out_dictionery['t_spect'][i] = t
+            # sg_db = 10 * np.log10(spectrogram.values)
+            out_dictionery['spectrogram'][i] = spectrogram
+            out_dictionery['Event'][i]=ADOS_speaker[3][i]
+            out_dictionery['Speaker'][i]=ADOS_speaker[2][i]
+            intensity = snd_part.to_intensity()
+            out_dictionery['intensity'][i]=intensity
+            f0min=60
+            f0max=1600
+            pointProcess = call(snd_part, "To PointProcess (periodic, cc)",
+                                f0min,
+                                f0max)
+            numPoints = call(pointProcess, "Get number of points")
+               
+            formants = call(snd_part, "To Formant (burg)",
+                            time_step,                                  # time step(s),
+                            5,  
+                            8000,                                       # formant ceiling(Hz),
+                            window_length,                              # window length(s),
+                            50)                                         # Pre-emphasis from(Hz)
+            
+            f1_list = []
+            f2_list = []
+            f3_list = []
+            f4_list = []
+            time_f = []
+            
+                # Measure formants only at glottal pulses
+            for point in range(0, numPoints):
+                point += 1
+                t = call(pointProcess, "Get time from index", point)
+                f1 = call(formants, "Get value at time", 1, t, 'Hertz', 'Linear')
+                f2 = call(formants, "Get value at time", 2, t, 'Hertz', 'Linear')
+                f3 = call(formants, "Get value at time", 3, t, 'Hertz', 'Linear')
+                f4 = call(formants, "Get value at time", 4, t, 'Hertz', 'Linear')
+                time_f.append(t)
+                f1_list.append(f1)
+                f2_list.append(f2)
+                f3_list.append(f3)
+                f4_list.append(f4)
+                    
+            if f1_list:
+                f1_list_no_nan = [f1 for f1 in f1_list if str(f1) != 'nan']
+                f2_list_no_nan = [f2 for f2 in f2_list if str(f2) != 'nan']
+                f3_list_no_nan = [f3 for f3 in f3_list if str(f3) != 'nan']
+               
+                out_dictionery['time_f'][i]=time_f
+                out_dictionery['F1'][i]=f1_list
+                out_dictionery['F2'][i]=f2_list
+                out_dictionery['F3'][i]=f3_list
+
+            else:
+                # out_dictionery['pitch'][i] = []
+                # out_dictionery['pitch_obj'][i] = []
+                out_dictionery['time_f'][i]=[]
+                out_dictionery['F1'][i]=[]
+                out_dictionery['F2'][i]=[]
+                out_dictionery['F3'][i]=[]
+            # 
+            i += 1
+
     return out_dictionery
     
+
+
+
+@jit( forceobj=True)    
+def process_pitch_formants(ADOS_speaker,sound,window_length,time_step):
+    
+    out_dictionery = {'F1':{},'F2':{},'F3':{},'pitch':{} }
+    
+    for i in ADOS_speaker.index:
+            
+            snd_part = sound.extract_part(from_time=ADOS_speaker.loc[i,0],
+                                                         to_time =ADOS_speaker.loc[i,1], preserve_times=True )
+        
+            # snd_part = sound.extract_part(from_time=d['Start_time'][0],to_time =d['End_time'][0], preserve_times=True )
+
+            pitch = call(snd_part, "To Pitch (cc)", 0,              # time_step(s)
+                         60,                                        # f0min pitch_floor(Hz)
+                         15,
+                         'no',
+                         0.03,                                      # silence_threshold
+                         0.45,                                      # Voicing_th               
+                         0.01,
+                         0.35,
+                         0.14,
+                         1600)                                      #  f0max
+            # pitch = snd_part.to_pitch()
+            pitch_values = pitch.selected_array['frequency'] 
+            pitch_values[pitch_values==0] = np.nan
+            out_dictionery['pitch'][i] = pitch_values
+            
+            # pre_emphasized_sound = snd_part.copy() 
+            # pre_emphasized_sound.pre_emphasize() 
+            
+            f0min=60
+            f0max=1600
+            pointProcess = call(snd_part, "To PointProcess (periodic, cc)",
+                                f0min,
+                                f0max)
+            numPoints = call(pointProcess, "Get number of points")
+               
+            formants = call(snd_part, "To Formant (burg)",
+                            time_step,                                  # time step(s),
+                            5,  
+                            8000,                                       # formant ceiling(Hz),
+                            window_length,                              # window length(s),
+                            50)                                         # Pre-emphasis from(Hz)
+            
+            f1_list = []
+            f2_list = []
+            f3_list = []
+            f4_list = []
+            time_f = []
+            
+                # Measure formants only at glottal pulses
+            for point in range(0, numPoints):
+                point += 1
+                t = call(pointProcess, "Get time from index", point)
+                f1 = call(formants, "Get value at time", 1, t, 'Hertz', 'Linear')
+                f2 = call(formants, "Get value at time", 2, t, 'Hertz', 'Linear')
+                f3 = call(formants, "Get value at time", 3, t, 'Hertz', 'Linear')
+                f4 = call(formants, "Get value at time", 4, t, 'Hertz', 'Linear')
+                time_f.append(t)
+                f1_list.append(f1)
+                f2_list.append(f2)
+                f3_list.append(f3)
+                f4_list.append(f4)
+                    
+            if f1_list:
+                f1_list_no_nan = [f1 for f1 in f1_list if str(f1) != 'nan']
+                f2_list_no_nan = [f2 for f2 in f2_list if str(f2) != 'nan']
+                f3_list_no_nan = [f3 for f3 in f3_list if str(f3) != 'nan']
+                out_dictionery['F1'][i]=f1_list_no_nan
+                out_dictionery['F2'][i]=f2_list_no_nan
+                out_dictionery['F3'][i]=f3_list_no_nan
+
+            else:
+                out_dictionery['F1'][i]=[]
+                out_dictionery['F2'][i]=[]
+                out_dictionery['F3'][i]=[]
+            # 
+            i += 1
+
+    return out_dictionery
+
+@jit(forceobj=True) 
+def extract_formants_pitch(ADOS_dictionery):
+    
+    F1 = []
+    F2 = []
+    F3 = []
+
+    Pitch = []   
+    for i in range(0,len(ADOS_dictionery['pitch'])):
+        # print(i)
+        pitch = ADOS_dictionery['pitch'][i]
+        # pitch[pitch==0] = np.NaN
+        pitch_no_nan = [f1 for f1 in pitch if str(f1) != 'nan']
+        # pitch_interp =interp1d(t_pitch,pitch, kind='linear')(t_new) 
+        Pitch.append( pitch_no_nan)
+
+        F1.append(ADOS_dictionery['F1'][i])
+        F2.append(ADOS_dictionery['F2'][i])
+        F3.append(ADOS_dictionery['F3'][i])
+        i+=1        
+       
+        
+    F1_chain = np.concatenate([F1[x] for x in range(0,len(F1))])
+    F2_chain = np.concatenate([F2[x] for x in range(0,len(F2))])
+    F3_chain = np.concatenate([F3[x] for x in range(0,len(F3))])
+    Pitch_chain = np.concatenate([Pitch[x] for x in range(0,len(Pitch))])
+    
+    mean_pitch = statistics.mean( Pitch_chain)           
+    # calculate mean formants across pulses
+    f1_mean = statistics.mean(F1_chain)
+    f2_mean = statistics.mean(F2_chain)
+    f3_mean = statistics.mean(F3_chain)
+
+    f1_median = statistics.median(F1_chain)
+    f2_median = statistics.median(F3_chain)
+    f3_median = statistics.median(F2_chain)
+    return mean_pitch,f1_mean,f2_mean,f3_mean,f1_median,f2_median,f3_median
+
+
+
 
 def compute_filterbank(low_freq_mel,NFFT,nfilt,Fs):
     high_freq_mel = (2595 * np.log10(1 + (Fs / 2) / 700))  # Convert Hz to Mel
@@ -413,7 +527,7 @@ def compute_filterbank(low_freq_mel,NFFT,nfilt,Fs):
     filter_banks = fbank 
     return filter_banks
     
-def cmvn(vec, variance_normalization=False):
+def CMVN(vec, variance_normalization=False):
     """ This function is aimed to perform global cepstral mean and
         variance normalization (CMVN) on input feature vector "vec".
         The code assumes that there is one observation per row.
@@ -480,7 +594,8 @@ def compute_accumulated_cost_matrix_subsequence_dtw_21(C):
     D = np.zeros((N + 1, M + 2))
     D[0:1, :] = np.inf
     D[:, 0:2] = np.inf
-
+# This initialization makes it possible to start at any position of the
+# sequence Y without accumulating any cost
     D[1, 2:] = C[0, :]
 
     for n in range(1, N):
@@ -610,7 +725,7 @@ def compute_optimal_warping_path_subsequence_dtw_21(D, m=-1):
     P = np.array(P)
     return P
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def normalize_feature_sequence(X, norm='2', threshold=0.0001, v=None):
     """Normalizes the columns of a feature sequence
 
@@ -673,14 +788,14 @@ def normalize_feature_sequence(X, norm='2', threshold=0.0001, v=None):
 
     return X_norm
 
-def plot_matches(ax, matches, Delta, Fs=1, alpha=0.2, color='r', s_marker='o', t_marker=''):
+def plot_matches(ax, matches, Delta, Fr=1, alpha=0.2, color='r', s_marker='o', t_marker=''):
     """Plots matches into existing axis
 
     Args:
         ax: Axis
         matches: Array of matches (start, end)
         Delta: Matching function
-        Fs: Feature rate (Default value = 1)
+        Fr: Feature rate (Default value = 1)
         alpha: Transparency pramaeter for match visualization (Default value = 0.2)
         color: Color used to indicated matches (Default value = 'r')
         s_marker: Marker used to indicate start of matches (Default value = 'o')
@@ -688,9 +803,9 @@ def plot_matches(ax, matches, Delta, Fs=1, alpha=0.2, color='r', s_marker='o', t
     """
     y_min, y_max = ax.get_ylim()
     for (s, t) in matches:
-        ax.plot(s/Fs, Delta[s], color=color, marker=s_marker, linestyle='None')
-        ax.plot(t/Fs, Delta[t], color=color, marker=t_marker, linestyle='None')
-        rect = patches.Rectangle(((s-0.5)/Fs, y_min), (t-s+1)/Fs, y_max, facecolor=color, alpha=alpha)
+        ax.plot(s/Fr, Delta[s], color=color, marker=s_marker, linestyle='None')
+        ax.plot(t/Fr, Delta[t], color=color, marker=t_marker, linestyle='None')
+        rect = patches.Rectangle(((s-0.5)/Fr, y_min), (t-s+1)/Fr, y_max, facecolor=color, alpha=alpha)
         ax.add_patch(rect)
 
 
@@ -721,7 +836,7 @@ def plot_signal(x, Fs=1, T_coef=None, ax=None, figsize=(6, 2), xlabel='Time (sec
         fig = plt.figure(figsize=figsize, dpi=dpi)
         ax = plt.subplot(1, 1, 1)
     if T_coef is None:
-        T_coef = np.arange(x.shape[0]) / Fs
+        T_coef = np.arange(x.shape[0]) / Fs 
 
     if 'color' not in kwargs:
         kwargs['color'] = 'gray'
@@ -781,7 +896,7 @@ def plot_matrix(X, Fs=1, Fs_F=1, T_coef=None, F_coef=None, xlabel='Time (seconds
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
         ax = [ax]
     if T_coef is None:
-        T_coef = np.arange(X.shape[1]) / Fs
+        T_coef = np.arange(X.shape[1]) * (Fs*0.01)
     if F_coef is None:
         F_coef = np.arange(X.shape[0]) / Fs_F
 
@@ -827,7 +942,7 @@ def plot_matrix(X, Fs=1, Fs_F=1, T_coef=None, F_coef=None, xlabel='Time (seconds
 
     return fig, ax, im
 
-def compressed_gray_cmap(alpha=5, N=256, reverse=True):
+def compressed_gray_cmap(alpha=5, N=256, reverse=False):
     """Create a logarithmically or exponentially compressed grayscale colormap.
 
     Args:
@@ -856,3 +971,160 @@ def compressed_gray_cmap(alpha=5, N=256, reverse=True):
     gray_values_rgb = np.repeat(gray_values.reshape(N, 1), 3, axis=1)
     color_wb = LinearSegmentedColormap.from_list('color_wb', gray_values_rgb, N=N)
     return color_wb
+
+def matching_function_diag_multiple(X, Y, tempo_rel_set=[1], cyclic=False):
+    """
+    Computes diagonal matching function using multiple query strategy
+
+    Args:
+        X (np.ndarray): First sequence (K x N matrix)
+        Y (np.ndarray): Second sequence (K x M matrix)
+        tempo_rel_set (np.ndarray): Set of relative tempo values (scaling) (Default value = [1])
+        cyclic (bool): If "True" then matching is done cyclically (Default value = False)
+
+    Returns:
+        Delta_min (np.ndarray): Matching function (obtained by from minimizing over several matching functions)
+        Delta_N (np.ndarray): Query length of best match for each time position
+        Delta_scale (np.ndarray): Set of matching functions (for each of the scaled versions of the query)
+    """
+    M = Y.shape[1]
+    num_tempo = len(tempo_rel_set)
+    Delta_scale = np.zeros((num_tempo, M))
+    N_scale = np.zeros(num_tempo)
+    for k in range(num_tempo):
+        X_scale, N_scale[k] = scale_tempo_sequence(X, factor=tempo_rel_set[k])
+        C_scale = 1- X_scale.T@ Y
+        Delta_scale[k, :] = matching_function_diag(C_scale, cyclic=cyclic)
+    Delta_min = np.min(Delta_scale, axis=0)
+    Delta_argmin = np.argmin(Delta_scale, axis=0)
+    Delta_N = N_scale[Delta_argmin]
+    return Delta_min, Delta_N, Delta_scale
+
+def scale_tempo_sequence(X, factor=1):
+    """Scales a sequence (given as feature matrix) along time (second dimension)
+
+    Args:
+        X (np.ndarray): Feature sequences (given as K x N matrix)
+        factor (float): Scaling factor (resulting in length "round(factor * N)"") (Default value = 1)
+
+    Returns:
+        X_new (np.ndarray): Scaled feature sequence
+        N_new (int): Length of scaled feature sequence
+    """
+    N = X.shape[1]
+    t = np.linspace(0, 1, num=N, endpoint=True)
+    N_new = np.round(factor * N).astype(int)
+    t_new = np.linspace(0, 1, num=N_new, endpoint=True)
+    X_new = scipy.interpolate.interp1d(t, X, axis=1)(t_new)
+    return X_new, N_new
+
+def matching_function_diag(C, cyclic=False):
+    """Computes diagonal matching function
+
+    Args:
+        C (np.ndarray): Cost matrix
+        cyclic (bool): If "True" then matching is done cyclically (Default value = False)
+
+    Returns:
+        Delta (np.ndarray): Matching function
+    """
+    N, M = C.shape
+    assert N <= M, "N <= M is required"
+    Delta = C[0, :]
+    for n in range(1, N):
+        Delta = Delta + np.roll(C[n, :], -n)
+    Delta = Delta / N
+    if cyclic is False:
+        Delta[M-N+1:M] = np.inf
+    return Delta
+
+def matches_diag(pos, Delta_N):
+    """Derives matches from positions in the case of diagonal matching
+
+    Args:
+        pos (np.ndarray or list): Starting positions of matches
+        Delta_N (int or np.ndarray or list): Length of match (a single number or a list of same length as Delta)
+
+    Returns:
+        matches (np.ndarray): Array containing matches (start, end)
+    """
+    matches = np.zeros((len(pos), 2)).astype(int)
+    for k in range(len(pos)):
+        s = pos[k]
+        matches[k, 0] = s
+        if isinstance(Delta_N, int):
+            matches[k, 1] = s + Delta_N - 1
+        else:
+            matches[k, 1] = s + Delta_N[s] - 1
+    return matches
+
+
+def VTLN(frame, alpha=1.12):
+    """Frequency warping in symmetrical manner
+
+    Args:
+        frame (np.array): one-side spectrum of signal
+        alpha (float): Length of match (a single number or a list of same length as Delta) (Default value = 1.12)
+
+    Returns:
+        warpedFrame (np.array): warped one-side spectrum of signal
+    """
+    m = len(frame);
+    omega = np.arange(m) / m * np.pi
+    omega_warped = omega
+
+    omega0 = 7/8 * np.pi
+
+    if alpha > 1:
+        omega0 = 7/(8*alpha) * np.pi
+      
+    # omega_warped((omega <= omega0)) = alpha .* omega((omega <= omega0));
+    # omega_warped((omega > omega0)) = alpha * omega0 + ((pi - alpha * omega0)/(pi - omega0)) .* (omega((omega > omega0)) - omega0);
+    omega_warped[omega <= omega0] == alpha * omega[omega <= omega0]
+    omega_warped[omega > omega0] == alpha * omega0 + ((np.pi - alpha * omega0)/(np.pi - omega0)) * (omega[omega > omega0] - omega0)
+    # omega_warped = omega_warped / np.pi * m
+    # warpedFrame = scipy.interpolate.interp1d(np.arange(m), frame)(omega_warped)#.';%spline ,'linear','extrap'
+    warpedFrame = scipy.interpolate.interp1d(omega, frame, axis=0)(omega_warped)
+    return warpedFrame
+    
+# import numpy as np
+# from scipy.interpolate import interp1d
+
+# def interpolate_with_nans(t, y, t_new, kind='linear'):
+#     """Interpolate a set of data points, preserving NaN regions from the original data.
+    
+#     Parameters
+#     ----------
+#     t : array-like
+#         The time coordinates of the data points.
+#     y : array-like
+#         The y-coordinates of the data points.
+#     t_new : array-like
+#         The new time coordinates to interpolate the data onto.
+#     kind : str, optional
+#         The type of interpolation to use. Can be 'linear', 'nearest', 'zero', 'slinear', 'quadratic', or 'cubic'.
+#         Default is 'linear'.
+        
+#     Returns
+#     -------
+#     y_interp : ndarray
+#         The interpolated data, with NaN regions preserved from the original data.
+#     """
+#     # Find the indices of the NaN values in y
+#     y = np.array(y)
+#     t = np.array(t)
+    
+#     nan_indices = np.where(np.isnan(y))[0]
+#     nan_indices = nan_indices.astype(int)
+#     # Replace NaN values in y with the corresponding t-coordinate
+#     t_nan = t[nan_indices]
+#     y_nan = y[nan_indices]
+#     y[nan_indices] = t[nan_indices]
+    
+#     # Interpolate the data
+#     y_interp = interp1d(t, y, kind=kind)(t_new)
+    
+#     # Replace the interpolated values at the NaN regions with NaN
+#     y_interp[np.isin(t_new, t_nan)] = np.nan
+    
+#     return y_interp

@@ -175,7 +175,7 @@ xlabel('Time (s)')
 ylabel('Frequency (Hz)')
 c = colorbar;
 c.Label.String = 'Power (dB)';
-
+coeffs = mfcc(audioIn,fs)
 ccc = cepstralCoefficients(melSpectrogram,'NumCoeffs',NumBands);
 % by default the equasion is:
 MFCC_features = (DCT_mat*log10(melSpectrogram))';

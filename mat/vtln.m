@@ -86,8 +86,8 @@ end
     %     warpFunction
     %    plotopts = "-k";
     %end
-    omega_warped = omega_warped ./ pi .* m;
-    warpedFrame = interp1((1:m), frame, omega_warped).';%spline ,'linear','extrap'
+%     omega_warped = omega_warped ./ pi .* m;
+    warpedFrame = interp1(omega, frame, omega_warped).';%spline ,'linear','extrap'
 
     if isreal(frame(end))
         warpedFrame(end) = real(warpedFrame(end));
