@@ -1,0 +1,29 @@
+1.	Open Anaconda Prompt 
+a.	conda create –n tf_gpu_260722
+	conda activate tf_gpu_260723
+b.	conda install python=3.9 cudatoolkit cudnn
+c.	conda install –c anaconda tensorflow-gpu
+2.	Download and install for all users (and choose include in PATH) python-3.9.13-amd64.exe
+3.	Download and install for all users Spyder_64bit_full.exe.
+4.	Open Anaconda Prompt
+a.	conda install -c conda-forge spyder-kernels==2.5
+5.	Open the standalone Spyder
+a.	Tools
+b.	Preferences
+c.	Python interpreter
+d.	Change to "Use the following Python interpreter"
+e.	Copy here the path: C:\ProgramData\Anaconda3\envs\tf_gpu_060922\python.exe
+https://medium.com/analytics-vidhya/5-steps-setup-python-virtual-environment-in-spyder-ide-da151bafa337  
+
+6.	Open Anaconda Prompt
+b.	conda install -c conda-forge pyyaml
+c.	conda install pandas
+d.	conda install -c anaconda scikit-learn
+e.	conda install -c conda-forge matplotlib
+f.	conda install -c conda-forge librosa
+g.	conda install -c anaconda openpyxl 
+i.	conda install –c anaconda seaborn 
+j.	pip install opensmile
+k.	pip install pyroomacoustics 
+m.	conda install -c conda-forge keras
+
